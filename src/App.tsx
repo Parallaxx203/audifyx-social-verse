@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +16,7 @@ import Messages from "./pages/Messages";
 import Call from "./pages/Call";
 import Settings from "./pages/Settings";
 import CreatorHub from "./pages/CreatorHub";
+import BrandHub from "./pages/BrandHub";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +38,7 @@ const App = () => (
           <Route path="/call" element={<Call />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/creator-hub" element={<CreatorHub />} />
+          <Route path="/brand-hub" element={<BrandHub />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

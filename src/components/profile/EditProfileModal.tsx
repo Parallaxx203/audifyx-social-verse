@@ -4,30 +4,45 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUpdateProfile, uploadProfileFile } from "@/hooks/useProfile";
+import { toast } from "@/components/ui/use-toast";
 
 export function EditProfileModal({ open, onOpenChange, profile }: any) {
   const [displayName, setDisplayName] = useState(profile?.username ?? "");
   const [bio, setBio] = useState(profile?.bio || "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const updateProfile = useUpdateProfile(profile?.id);
 
   async function handleSave() {
-    setLoading(true);
-    let update: any = { username: displayName, bio };
+    setIsLoading(true);
+    try {
+      let update: any = { username: displayName, bio };
 
-    if (avatarFile) {
-      update.avatar_url = await uploadProfileFile("profile_images", avatarFile, profile.id);
+      if (avatarFile) {
+        update.avatar_url = await uploadProfileFile("profile_images", avatarFile, profile.id);
+      }
+      if (bannerFile) {
+        update.banner_url = await uploadProfileFile("profile_banners", bannerFile, profile.id);
+      }
+      update.updated_at = new Date().toISOString();
+      await updateProfile.mutateAsync(update);
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully",
+      });
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
+      console.error("Error updating profile:", error);
+    } finally {
+      setIsLoading(false);
     }
-    if (bannerFile) {
-      update.banner_url = await uploadProfileFile("profile_banners", bannerFile, profile.id);
-    }
-    update.updated_at = new Date().toISOString();
-    await updateProfile.mutateAsync(update);
-    setLoading(false);
-    onOpenChange(false);
   }
 
   return (
@@ -45,8 +60,12 @@ export function EditProfileModal({ open, onOpenChange, profile }: any) {
             <label className="text-sm mb-1 block">Banner</label>
             <Input type="file" accept="image/*" onChange={e => setBannerFile((e.target.files?.[0] || null))} />
           </div>
-          <Button onClick={handleSave} loading={loading} className="bg-audifyx-purple w-full">
-            Save Changes
+          <Button 
+            onClick={handleSave} 
+            disabled={isLoading}
+            className="bg-audifyx-purple w-full"
+          >
+            {isLoading ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </DialogContent>

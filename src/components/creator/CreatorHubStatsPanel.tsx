@@ -2,7 +2,10 @@
 import React from "react";
 import { useCreatorStats } from "@/hooks/useCreatorStats";
 import { Card } from "@/components/ui/card";
-import { BarChart, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Line } from "recharts";
+import { 
+  BarChart, Bar, LineChart, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, Legend, Line 
+} from "recharts";
 
 export function CreatorHubStatsPanel({ userId }: { userId: string }) {
   const { data: stats, isLoading } = useCreatorStats(userId);
@@ -27,10 +30,6 @@ export function CreatorHubStatsPanel({ userId }: { userId: string }) {
             <YAxis />
             <Tooltip />
             <Legend />
-            <BarChart data={chartData}>
-              <BarChart data={chartData} />
-            </BarChart>
-            <BarChart data={chartData} />
             <Bar dataKey="value" fill="#a593f7" />
           </BarChart>
         </ResponsiveContainer>
