@@ -441,6 +441,47 @@ export type Database = {
           },
         ]
       }
+      twitch_connections: {
+        Row: {
+          access_token: string | null
+          created_at: string | null
+          id: string
+          refresh_token: string | null
+          twitch_id: string | null
+          twitch_username: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string | null
+          id?: string
+          refresh_token?: string | null
+          twitch_id?: string | null
+          twitch_username: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string | null
+          id?: string
+          refresh_token?: string | null
+          twitch_id?: string | null
+          twitch_username?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twitch_connections_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       discovery_feed: {
@@ -461,6 +502,14 @@ export type Database = {
         Returns: undefined
       }
       increment_creator_stat: {
+        Args: {
+          creator_id: string
+          stat_type: string
+          increment_amount?: number
+        }
+        Returns: undefined
+      }
+      increment_creator_stat_with_points: {
         Args: {
           creator_id: string
           stat_type: string
