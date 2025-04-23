@@ -52,6 +52,16 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				audifyx: {
+				  purple: {
+				    DEFAULT: '#9b87f5',
+				    dark: '#1A1F2C',
+				    vivid: '#8B5CF6'
+				  },
+				  blue: '#1EAEDB',
+				  charcoal: '#221F26',
+				  black: '#000000e6'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
