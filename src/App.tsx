@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +8,13 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import Discover from "./pages/Discover";
+import LiveStream from "./pages/LiveStream";
+import AllUsers from "./pages/AllUsers";
+import Messages from "./pages/Messages";
+import Call from "./pages/Call";
+import Settings from "./pages/Settings";
+import CreatorHub from "./pages/CreatorHub";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +29,13 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/discover" element={<Discover />} />
+          <Route path="/live-stream" element={<LiveStream />} />
+          <Route path="/users" element={<AllUsers />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/call" element={<Call />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/creator-hub" element={<CreatorHub />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
