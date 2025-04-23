@@ -9,6 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      call_sessions: {
+        Row: {
+          call_type: string
+          duration: number | null
+          ended_at: string | null
+          id: string
+          initiator_id: string
+          recipient_id: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          call_type: string
+          duration?: number | null
+          ended_at?: string | null
+          id?: string
+          initiator_id: string
+          recipient_id: string
+          started_at?: string | null
+          status: string
+        }
+        Update: {
+          call_type?: string
+          duration?: number | null
+          ended_at?: string | null
+          id?: string
+          initiator_id?: string
+          recipient_id?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_sessions_initiator_id_fkey"
+            columns: ["initiator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_sessions_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_creators: {
         Row: {
           campaign_id: string
@@ -83,6 +131,47 @@ export type Database = {
           {
             foreignKeyName: "campaigns_brand_id_fkey"
             columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_stats: {
+        Row: {
+          comments_count: number | null
+          id: string
+          likes_count: number | null
+          shares_count: number | null
+          total_play_time: number | null
+          updated_at: string | null
+          user_id: string
+          views_count: number | null
+        }
+        Insert: {
+          comments_count?: number | null
+          id?: string
+          likes_count?: number | null
+          shares_count?: number | null
+          total_play_time?: number | null
+          updated_at?: string | null
+          user_id: string
+          views_count?: number | null
+        }
+        Update: {
+          comments_count?: number | null
+          id?: string
+          likes_count?: number | null
+          shares_count?: number | null
+          total_play_time?: number | null
+          updated_at?: string | null
+          user_id?: string
+          views_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_stats_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -270,7 +359,10 @@ export type Database = {
           bio: string | null
           created_at: string
           full_name: string | null
+          handle: string | null
           id: string
+          is_online: boolean | null
+          last_seen: string | null
           updated_at: string
           username: string
           website: string | null
@@ -281,7 +373,10 @@ export type Database = {
           bio?: string | null
           created_at?: string
           full_name?: string | null
+          handle?: string | null
           id: string
+          is_online?: boolean | null
+          last_seen?: string | null
           updated_at?: string
           username: string
           website?: string | null
@@ -292,7 +387,10 @@ export type Database = {
           bio?: string | null
           created_at?: string
           full_name?: string | null
+          handle?: string | null
           id?: string
+          is_online?: boolean | null
+          last_seen?: string | null
           updated_at?: string
           username?: string
           website?: string | null
@@ -345,11 +443,29 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      discovery_feed: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          media_url: string | null
+          title: string | null
+          type: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_user_points: {
         Args: { user_id: string; amount: number; reason: string }
+        Returns: undefined
+      }
+      increment_creator_stat: {
+        Args: {
+          creator_id: string
+          stat_type: string
+          increment_amount?: number
+        }
         Returns: undefined
       }
       increment_track_play_count: {
