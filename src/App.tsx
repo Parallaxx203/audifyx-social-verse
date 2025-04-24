@@ -20,6 +20,8 @@ import BrandHub from "./pages/BrandHub";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import ViewProfile from "@/pages/ViewProfile";
 import TestDB from "@/pages/TestDB";
+import PayoutRequest from "@/pages/PayoutRequest"; // Import the PayoutRequest component
+
 
 const queryClient = new QueryClient();
 
@@ -85,6 +87,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/test-db" element={<TestDB />} />
+            <Route path="/payouts" element={<PayoutRequest />} /> {/* Added PayoutRequest route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
