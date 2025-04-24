@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      call_logs: {
+        Row: {
+          caller_id: string | null
+          duration: number | null
+          id: string
+          receiver_id: string | null
+          started_at: string | null
+          type: string | null
+        }
+        Insert: {
+          caller_id?: string | null
+          duration?: number | null
+          id?: string
+          receiver_id?: string | null
+          started_at?: string | null
+          type?: string | null
+        }
+        Update: {
+          caller_id?: string | null
+          duration?: number | null
+          id?: string
+          receiver_id?: string | null
+          started_at?: string | null
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_logs_caller_id_fkey"
+            columns: ["caller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_sessions: {
         Row: {
           call_type: string
@@ -86,6 +128,42 @@ export type Database = {
           },
           {
             foreignKeyName: "campaign_creators_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_participants: {
+        Row: {
+          campaign_id: string | null
+          creator_id: string | null
+          id: string
+          joined_at: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          creator_id?: string | null
+          id?: string
+          joined_at?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          creator_id?: string | null
+          id?: string
+          joined_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_participants_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_participants_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -256,6 +334,44 @@ export type Database = {
           },
         ]
       }
+      music_uploads: {
+        Row: {
+          cover_art_url: string | null
+          file_url: string | null
+          genre: string | null
+          id: string
+          title: string | null
+          uploaded_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cover_art_url?: string | null
+          file_url?: string | null
+          genre?: string | null
+          id?: string
+          title?: string | null
+          uploaded_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cover_art_url?: string | null
+          file_url?: string | null
+          genre?: string | null
+          id?: string
+          title?: string | null
+          uploaded_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "music_uploads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       point_transactions: {
         Row: {
           amount: number
@@ -310,6 +426,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "points_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      points_ledger: {
+        Row: {
+          action: string | null
+          id: string
+          points_earned: number | null
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          id?: string
+          points_earned?: number | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          id?: string
+          points_earned?: number | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "points_ledger_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -397,6 +545,42 @@ export type Database = {
         }
         Relationships: []
       }
+      stream_logs: {
+        Row: {
+          id: string
+          music_id: string | null
+          streamed_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          music_id?: string | null
+          streamed_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          music_id?: string | null
+          streamed_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_logs_music_id_fkey"
+            columns: ["music_id"]
+            isOneToOne: false
+            referencedRelation: "music_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stream_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tracks: {
         Row: {
           cover_url: string | null
@@ -477,6 +661,74 @@ export type Database = {
             foreignKeyName: "twitch_connections_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      view_logs: {
+        Row: {
+          id: string
+          post_id: string | null
+          user_id: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          id?: string
+          post_id?: string | null
+          user_id?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          id?: string
+          post_id?: string | null
+          user_id?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "view_logs_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "view_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      withdrawals: {
+        Row: {
+          amount: number | null
+          id: string
+          requested_at: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          id?: string
+          requested_at?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          id?: string
+          requested_at?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },

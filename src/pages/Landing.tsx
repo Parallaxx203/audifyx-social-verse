@@ -20,29 +20,30 @@ export default function Landing() {
   }, [navigate]);
   
   if (isLoggedIn) {
-    return null; // Will be redirected by the effect
+    return null;
   }
   
+  const handleSignUp = (accountType: 'user' | 'creator' | 'brand') => {
+    navigate("/auth", { 
+      state: { 
+        defaultTab: "signup",
+        accountType 
+      } 
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-audifyx text-white">
       {/* Header */}
       <header className="container mx-auto px-4 py-6 flex justify-between items-center">
         <Logo size="md" />
-        <div className="flex gap-4">
-          <Button 
-            variant="ghost" 
-            className="border border-audifyx-purple/30 hover:bg-audifyx-purple/20"
-            onClick={() => navigate("/auth")}
-          >
-            Login
-          </Button>
-          <Button 
-            className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
-            onClick={() => navigate("/auth", { state: { defaultTab: "signup" } })}
-          >
-            Sign Up
-          </Button>
-        </div>
+        <Button 
+          variant="ghost" 
+          className="border border-audifyx-purple/30 hover:bg-audifyx-purple/20"
+          onClick={() => navigate("/auth")}
+        >
+          Login
+        </Button>
       </header>
       
       {/* Hero Section */}
@@ -55,20 +56,29 @@ export default function Landing() {
             <p className="text-xl md:text-2xl text-gray-300 mb-8 leading-relaxed font-handwriting">
               Connect with creators, share your favorite music, and earn rewards in a vibrant community built for music creators.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-4">
               <Button 
                 size="lg"
-                className="bg-audifyx-purple hover:bg-audifyx-purple-vivid text-lg"
-                onClick={() => navigate("/auth", { state: { defaultTab: "signup" } })}
+                className="bg-audifyx-purple hover:bg-audifyx-purple-vivid text-lg w-full sm:w-auto"
+                onClick={() => handleSignUp('user')}
               >
-                Join Now
+                Join as Listener
               </Button>
               <Button 
                 size="lg"
                 variant="outline" 
-                className="border-audifyx-purple/30 hover:bg-audifyx-purple/20 text-lg"
+                className="border-audifyx-purple/30 hover:bg-audifyx-purple/20 text-lg w-full sm:w-auto"
+                onClick={() => handleSignUp('creator')}
               >
-                Learn More
+                Join as Creator
+              </Button>
+              <Button 
+                size="lg"
+                variant="outline" 
+                className="border-audifyx-purple/30 hover:bg-audifyx-purple/20 text-lg w-full sm:w-auto"
+                onClick={() => handleSignUp('brand')}
+              >
+                Join as Brand
               </Button>
             </div>
           </div>
