@@ -71,40 +71,7 @@ export default function Dashboard() {
                 Refresh
               </Button>
             </div>
-            <div className="space-y-4">
-              <Card className="border-audifyx-purple/20 bg-gradient-to-br from-audifyx-purple/20 to-audifyx-blue/20">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-audifyx-purple/30" />
-                    <div>
-                      <p className="font-semibold">Creator Name</p>
-                      <p className="text-sm text-gray-400">2 hours ago</p>
-                    </div>
-                  </div>
-                  <p className="mb-4">Just dropped a new track! Check it out 🎵</p>
-                  <div className="rounded-lg bg-audifyx-purple/20 p-4 mb-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">🎵</span>
-                      <div>
-                        <p className="font-medium">New Track Title</p>
-                        <p className="text-sm text-gray-400">3:45</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <Button variant="ghost" size="sm">
-                      <Heart className="w-4 h-4 mr-2" /> 42
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <MessageCircle className="w-4 h-4 mr-2" /> 12
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Share className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <SocialFeed />
           </section>
 
           {/* Latest Tracks Section */}
