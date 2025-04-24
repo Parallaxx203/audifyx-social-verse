@@ -1,140 +1,123 @@
-import { useState, useEffect } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sidebar } from "@/components/dashboard/sidebar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Avatar } from "@/components/ui/avatar";
-import { UserList } from "@/components/users/UserList";
-import { supabase } from "@/integrations/supabase/client";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Settings, Image as ImageIcon, Paperclip, Smile, Send } from "lucide-react";
-
-interface Message {
-  id: string;
-  content: string;
-  sender_id: string;
-  created_at: string;
-  sender?: {
-    username: string;
-    avatar_url: string;
-  }
-}
+import { Search, Users, Plus, Send, Phone, Video } from "lucide-react";
 
 export default function Messages() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const isMobile = useIsMobile();
+  const [activeChat, setActiveChat] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserId(user.id);
-    });
-  }, []);
-
-  const sendMessage = async () => {
-    if (!message.trim() || !selectedUser) return;
-
-    const { error } = await supabase
-      .from('messages')
-      .insert([{
-        content: message,
-        sender_id: userId,
-        receiver_id: selectedUser.id
-      }]);
-
-    if (!error) {
-      setMessage("");
-      // Refresh messages -  Consider adding a function to reload messages here.
-    }
-  };
+  // Mock data for chats
+  const chats = [
+    { id: "1", name: "Music Producers", type: "group", lastMessage: "Great beat!", time: "2m ago" },
+    { id: "2", name: "John Doe", type: "dm", lastMessage: "When is your next track dropping?", time: "1h ago" },
+  ];
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
-      {/* Sidebar */}
-      <Card className="w-80 border-r flex flex-col">
-        <div className="p-4 border-b">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Messages</h2>
-            <Button variant="ghost" size="icon">
-              <Settings className="h-5 w-5" />
-            </Button>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search messages" className="pl-9" />
-          </div>
-        </div>
-        <ScrollArea className="flex-1">
-          <UserList onSelectUser={setSelectedUser} />
-        </ScrollArea>
-      </Card>
-
-      {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {selectedUser ? (
-          <>
-            {/* Chat Header */}
-            <div className="border-b p-4 flex items-center gap-3">
-              <Avatar>
-                <Avatar.Image src={selectedUser.avatar_url} alt={selectedUser.username} />
-              </Avatar>
-              <div>
-                <h3 className="font-semibold">{selectedUser.username}</h3>
-                <span className="text-sm text-muted-foreground">Active now</span>
-              </div>
+    <div className="min-h-screen bg-gradient-audifyx text-white">
+      <div className="flex">
+        <Sidebar />
+        <main className={`flex-1 ${isMobile ? 'ml-0' : 'ml-64'} flex h-screen`}>
+          {/* Chat List */}
+          <div className="w-80 border-r border-audifyx-purple/20 p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Messages</h2>
+              <Button size="icon" variant="ghost">
+                <Plus className="w-5 h-5" />
+              </Button>
             </div>
 
-            {/* Messages */}
-            <ScrollArea className="flex-1 p-4">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex mb-4 ${msg.sender_id === userId ? 'justify-end' : 'justify-start'}`}
+            <div className="relative mb-4">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Input 
+                placeholder="Search chats..." 
+                className="pl-9 bg-background/10 border-audifyx-purple/30"
+              />
+            </div>
+
+            <div className="space-y-2">
+              {chats.map(chat => (
+                <Card 
+                  key={chat.id}
+                  className={`p-3 cursor-pointer transition-colors ${
+                    activeChat === chat.id 
+                      ? 'bg-audifyx-purple/30' 
+                      : 'bg-background/10 hover:bg-audifyx-purple/20'
+                  }`}
+                  onClick={() => setActiveChat(chat.id)}
                 >
-                  <div className={`flex gap-2 max-w-[70%] ${msg.sender_id === userId ? 'flex-row-reverse' : ''}`}>
-                    <Avatar className="h-8 w-8">
-                      <Avatar.Image src={msg.sender?.avatar_url} alt={msg.sender?.username} />
-                    </Avatar>
-                    <div className={`rounded-lg p-3 ${
-                      msg.sender_id === userId ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                    }`}>
-                      <p>{msg.content}</p>
+                  <div className="flex items-center gap-3">
+                    {chat.type === 'group' ? (
+                      <div className="w-12 h-12 rounded-full bg-audifyx-purple/30 flex items-center justify-center">
+                        <Users className="w-6 h-6" />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-audifyx-blue/30" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline">
+                        <p className="font-semibold truncate">{chat.name}</p>
+                        <span className="text-xs text-gray-400">{chat.time}</span>
+                      </div>
+                      <p className="text-sm text-gray-400 truncate">{chat.lastMessage}</p>
                     </div>
                   </div>
-                </div>
+                </Card>
               ))}
-            </ScrollArea>
+            </div>
+          </div>
 
-            {/* Message Input */}
-            <div className="border-t p-4">
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon">
-                  <ImageIcon className="h-5 w-5" />
-                </Button>
-                <Button variant="ghost" size="icon">
-                  <Paperclip className="h-5 w-5" />
-                </Button>
-                <Input
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                />
-                <Button variant="ghost" size="icon">
-                  <Smile className="h-5 w-5" />
-                </Button>
-                <Button onClick={sendMessage} disabled={!message.trim()}>
-                  <Send className="h-5 w-5" />
-                </Button>
+          {/* Chat Area */}
+          {activeChat ? (
+            <div className="flex-1 flex flex-col">
+              {/* Chat Header */}
+              <div className="p-4 border-b border-audifyx-purple/20 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-audifyx-purple/30" />
+                  <h3 className="font-semibold">
+                    {chats.find(c => c.id === activeChat)?.name}
+                  </h3>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="icon" variant="ghost">
+                    <Phone className="w-5 h-5" />
+                  </Button>
+                  <Button size="icon" variant="ghost">
+                    <Video className="w-5 h-5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 p-4 overflow-y-auto">
+                {/* Mock messages would go here */}
+              </div>
+
+              {/* Message Input */}
+              <div className="p-4 border-t border-audifyx-purple/20">
+                <div className="flex gap-2">
+                  <Input
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    className="bg-background/10 border-audifyx-purple/30"
+                  />
+                  <Button>
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            Select a conversation to start messaging
-          </div>
-        )}
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-gray-400">
+              Select a chat to start messaging
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );

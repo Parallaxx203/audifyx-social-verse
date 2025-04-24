@@ -47,10 +47,64 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
+          {/* Stories */}
+          <section className="mb-8 overflow-x-auto">
+            <div className="flex gap-4 pb-2">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex-shrink-0">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-r from-audifyx-purple to-audifyx-blue p-[2px]">
+                    <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
+                      <span className="text-2xl">🎵</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-center mt-1 truncate w-20">User {i + 1}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
           {/* Social Feed */}
           <section className="mb-8">
-            <h3 className="text-xl font-semibold mb-4">Your Feed</h3>
-            <SocialFeed />
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">Your Feed</h3>
+              <Button variant="ghost" size="sm">
+                Refresh
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <Card className="border-audifyx-purple/20 bg-gradient-to-br from-audifyx-purple/20 to-audifyx-blue/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-audifyx-purple/30" />
+                    <div>
+                      <p className="font-semibold">Creator Name</p>
+                      <p className="text-sm text-gray-400">2 hours ago</p>
+                    </div>
+                  </div>
+                  <p className="mb-4">Just dropped a new track! Check it out 🎵</p>
+                  <div className="rounded-lg bg-audifyx-purple/20 p-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🎵</span>
+                      <div>
+                        <p className="font-medium">New Track Title</p>
+                        <p className="text-sm text-gray-400">3:45</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <Button variant="ghost" size="sm">
+                      <Heart className="w-4 h-4 mr-2" /> 42
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <MessageCircle className="w-4 h-4 mr-2" /> 12
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <Share className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </section>
 
           {/* Latest Tracks Section */}
