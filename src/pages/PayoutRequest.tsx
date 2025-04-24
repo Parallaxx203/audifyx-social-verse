@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -51,7 +50,7 @@ export default function PayoutRequest() {
       .from('payout_requests')
       .select('*')
       .order('created_at', { ascending: false });
-    
+
     if (status !== 'all') {
       query.eq('status', status);
     }
@@ -81,16 +80,16 @@ export default function PayoutRequest() {
       if (error) throw error;
 
       // Send email notification
-      await fetch('https://formsubmit.co/ajax/loops4aiden@gmail.com', {
-        method: 'POST',
+      await fetch("https://formsubmit.co/ajax/loops4aiden@gmail.com", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json'
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify({
           name: user.user_metadata.username,
-          message: `New payout request:\nPoints: ${pointsToRedeem}\nUSD: $${payoutAmount}\nWallet: ${walletAddress}`
-        })
+          message: `New payout request:\nPoints: ${pointsToRedeem}\nUSD: $${payoutAmount}\nWallet: ${walletAddress}`,
+        }),
       });
 
       toast({
@@ -140,7 +139,7 @@ export default function PayoutRequest() {
                 <p className="text-sm text-gray-500 mb-1">Available Points</p>
                 <p className="text-xl font-semibold">{userPoints} ({(userPoints / 100).toFixed(2)} USD)</p>
               </div>
-              
+
               <form onSubmit={handleSubmitRequest} className="space-y-4">
                 <div>
                   <Input
@@ -153,7 +152,7 @@ export default function PayoutRequest() {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <Input
                     type="text"
@@ -205,7 +204,7 @@ export default function PayoutRequest() {
                         {request.status}
                       </span>
                     </div>
-                    
+
                     <div className="space-y-2 mb-4">
                       <p>Points: {request.points_amount}</p>
                       <p>USD: ${request.usd_amount}</p>
