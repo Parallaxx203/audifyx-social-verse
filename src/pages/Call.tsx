@@ -1,53 +1,58 @@
 
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Sidebar } from "@/components/dashboard/sidebar";
-import { Phone, Video, Mic } from "lucide-react";
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
+import { UserList } from "@/components/users/UserList";
+import { Phone, PhoneOff, Video, VideoOff } from "lucide-react";
 
 export default function Call() {
-  const isMobile = useIsMobile();
-
-  function handleCall(type: "audio" | "video") {
-    toast({
-      title: `Start ${type === "audio" ? "Audio" : "Video"} Call`,
-      description: "Call functionality for users coming soon!",
-    });
-    // TODO: Actually kick off call session/edge function
-  }
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isInCall, setIsInCall] = useState(false);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
 
   return (
-    <div className="min-h-screen bg-gradient-audifyx text-white">
-      <div className="flex">
-        <Sidebar />
-        <main className={`flex-1 ${isMobile ? 'ml-0' : 'ml-64'} px-4 py-8`}>
-          <div className="max-w-2xl mx-auto flex flex-col gap-8">
-            <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
-              <Phone className="w-6 h-6"/> Audio & Video Chat with Artists and Friends
-            </h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-audifyx-purple-dark/80 rounded-xl p-6 flex flex-col items-center">
-                <Mic className="w-8 h-8 mb-2" />
-                <p className="mb-4 text-lg">Start a voice call with artists and friends.<br/>Connect directly, discuss collaborations.</p>
-                <Button className="bg-audifyx-purple" onClick={() => handleCall("audio")}>Start Audio Call</Button>
-              </div>
-              <div className="bg-audifyx-purple-dark/80 rounded-xl p-6 flex flex-col items-center">
-                <Video className="w-8 h-8 mb-2" />
-                <p className="mb-4 text-lg">Face-to-face meetings made easy.</p>
-                <Button className="bg-audifyx-purple" onClick={() => handleCall("video")}>Start Video Call</Button>
-              </div>
+    <div className="container mx-auto p-4 grid grid-cols-12 gap-4 h-[calc(100vh-4rem)]">
+      <Card className="col-span-4 p-4">
+        <UserList onSelectUser={setSelectedUser} />
+      </Card>
+      
+      <Card className="col-span-8 p-4 flex flex-col items-center justify-center">
+        {selectedUser ? (
+          <>
+            <div className="aspect-video w-full bg-black/10 rounded-lg mb-4 flex items-center justify-center">
+              {isInCall ? "Call in progress" : "Ready to call"}
             </div>
-            <div className="bg-audifyx-charcoal/70 rounded-xl p-4 mt-4">
-              <h3 className="font-semibold text-lg mb-2">Future Features (Coming Soon):</h3>
-              <ul className="list-disc pl-5 text-gray-300">
-                <li>Livestream from Call</li>
-                <li>Earn Rewards over Call</li>
-                <li>Private Collab Rooms</li>
-              </ul>
+            
+            <div className="flex gap-4">
+              <Button
+                variant={isVideoEnabled ? "default" : "destructive"}
+                size="icon"
+                onClick={() => setIsVideoEnabled(!isVideoEnabled)}
+              >
+                {isVideoEnabled ? <Video /> : <VideoOff />}
+              </Button>
+              
+              <Button
+                variant={isAudioEnabled ? "default" : "destructive"}
+                size="icon"
+                onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+              >
+                {isAudioEnabled ? <Phone /> : <PhoneOff />}
+              </Button>
+              
+              <Button
+                variant={isInCall ? "destructive" : "default"}
+                onClick={() => setIsInCall(!isInCall)}
+              >
+                {isInCall ? "End Call" : "Start Call"}
+              </Button>
             </div>
-          </div>
-        </main>
-      </div>
+          </>
+        ) : (
+          <p className="text-center text-muted-foreground">Select a user to start a call</p>
+        )}
+      </Card>
     </div>
   );
 }
