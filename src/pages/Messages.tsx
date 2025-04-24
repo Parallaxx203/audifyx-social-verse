@@ -1,15 +1,13 @@
-
 import { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Avatar } from "@/components/ui/avatar";
 import { UserList } from "@/components/users/UserList";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar } from "@/components/ui/avatar";
-import { useToast } from "@/components/ui/use-toast";
-import { PlusCircle } from "lucide-react";
+import { Search, Settings, Image as ImageIcon, Paperclip, Smile, Send } from "lucide-react";
 
 interface Message {
   id: string;
@@ -22,205 +20,122 @@ interface Message {
   }
 }
 
-interface ChatGroup {
-  id: string;
-  name: string;
-  created_at: string;
-}
-
 export default function Messages() {
   const [userId, setUserId] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [selectedGroup, setSelectedGroup] = useState<ChatGroup | null>(null);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [groups, setGroups] = useState<ChatGroup[]>([]);
-  const { toast } = useToast();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUserId(user.id);
-        loadGroups(user.id);
-      }
+      if (user) setUserId(user.id);
     });
   }, []);
 
-  useEffect(() => {
-    if (selectedUser) {
-      loadDirectMessages(selectedUser.id);
-    } else if (selectedGroup) {
-      loadGroupMessages(selectedGroup.id);
-    }
-  }, [selectedUser, selectedGroup]);
-
-  const loadDirectMessages = async (recipientId: string) => {
-    const { data, error } = await supabase
-      .from('messages')
-      .select(`
-        *,
-        sender:profiles!sender_id(username, avatar_url)
-      `)
-      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-      .or(`sender_id.eq.${recipientId},receiver_id.eq.${recipientId}`)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load messages",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setMessages(data || []);
-  };
-
-  const loadGroupMessages = async (groupId: string) => {
-    const { data, error } = await supabase
-      .from('group_messages')
-      .select(`
-        *,
-        sender:profiles!sender_id(username, avatar_url)
-      `)
-      .eq('group_id', groupId)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load group messages",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setMessages(data || []);
-  };
-
-  const loadGroups = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('chat_groups')
-      .select('*')
-      .contains('member_ids', [userId]);
-
-    if (!error && data) {
-      setGroups(data);
-    }
-  };
-
   const sendMessage = async () => {
-    if (!message.trim()) return;
-
-    const table = selectedGroup ? 'group_messages' : 'messages';
-    const messageData = selectedGroup 
-      ? {
-          content: message,
-          sender_id: userId,
-          group_id: selectedGroup.id
-        }
-      : {
-          content: message,
-          sender_id: userId,
-          receiver_id: selectedUser.id
-        };
+    if (!message.trim() || !selectedUser) return;
 
     const { error } = await supabase
-      .from(table)
-      .insert([messageData]);
+      .from('messages')
+      .insert([{
+        content: message,
+        sender_id: userId,
+        receiver_id: selectedUser.id
+      }]);
 
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to send message",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setMessage("");
-    if (selectedGroup) {
-      loadGroupMessages(selectedGroup.id);
-    } else {
-      loadDirectMessages(selectedUser.id);
+    if (!error) {
+      setMessage("");
+      // Refresh messages -  Consider adding a function to reload messages here.
     }
   };
 
   return (
-    <div className="container mx-auto p-4 grid grid-cols-12 gap-4 h-[calc(100vh-4rem)]">
-      <Card className="col-span-4 p-4">
-        <Tabs defaultValue="direct">
-          <TabsList className="w-full mb-4">
-            <TabsTrigger value="direct" className="flex-1">Direct Messages</TabsTrigger>
-            <TabsTrigger value="groups" className="flex-1">Groups</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="direct">
-            <UserList onSelectUser={(user) => {
-              setSelectedUser(user);
-              setSelectedGroup(null);
-            }} />
-          </TabsContent>
-          
-          <TabsContent value="groups">
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full" onClick={() => {/* Implement group creation */}}>
-                <PlusCircle className="w-4 h-4 mr-2" />
-                Create Group
-              </Button>
-              {groups.map(group => (
-                <div
-                  key={group.id}
-                  className="p-2 hover:bg-accent rounded cursor-pointer"
-                  onClick={() => {
-                    setSelectedGroup(group);
-                    setSelectedUser(null);
-                  }}
-                >
-                  {group.name}
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+    <div className="flex h-[calc(100vh-4rem)]">
+      {/* Sidebar */}
+      <Card className="w-80 border-r flex flex-col">
+        <div className="p-4 border-b">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">Messages</h2>
+            <Button variant="ghost" size="icon">
+              <Settings className="h-5 w-5" />
+            </Button>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search messages" className="pl-9" />
+          </div>
+        </div>
+        <ScrollArea className="flex-1">
+          <UserList onSelectUser={setSelectedUser} />
+        </ScrollArea>
       </Card>
-      
-      <Card className="col-span-8 p-4 flex flex-col">
-        <ScrollArea className="flex-1 mb-4">
-          {messages.map(msg => (
-            <div
-              key={msg.id}
-              className={`mb-4 flex ${msg.sender_id === userId ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`flex ${msg.sender_id === userId ? 'flex-row-reverse' : 'flex-row'} items-start gap-2`}>
-                <Avatar className="w-8 h-8" />
-                <div className={`px-4 py-2 rounded-lg ${
-                  msg.sender_id === userId ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                }`}>
-                  <p className="text-sm">{msg.content}</p>
-                </div>
+
+      {/* Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {selectedUser ? (
+          <>
+            {/* Chat Header */}
+            <div className="border-b p-4 flex items-center gap-3">
+              <Avatar>
+                <Avatar.Image src={selectedUser.avatar_url} alt={selectedUser.username} />
+              </Avatar>
+              <div>
+                <h3 className="font-semibold">{selectedUser.username}</h3>
+                <span className="text-sm text-muted-foreground">Active now</span>
               </div>
             </div>
-          ))}
-        </ScrollArea>
-        
-        <div className="flex gap-2">
-          <Input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type a message..."
-            disabled={!selectedUser && !selectedGroup}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-          />
-          <Button 
-            disabled={!selectedUser && !selectedGroup || !message.trim()} 
-            onClick={sendMessage}
-          >
-            Send
-          </Button>
-        </div>
-      </Card>
+
+            {/* Messages */}
+            <ScrollArea className="flex-1 p-4">
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex mb-4 ${msg.sender_id === userId ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`flex gap-2 max-w-[70%] ${msg.sender_id === userId ? 'flex-row-reverse' : ''}`}>
+                    <Avatar className="h-8 w-8">
+                      <Avatar.Image src={msg.sender?.avatar_url} alt={msg.sender?.username} />
+                    </Avatar>
+                    <div className={`rounded-lg p-3 ${
+                      msg.sender_id === userId ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                    }`}>
+                      <p>{msg.content}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </ScrollArea>
+
+            {/* Message Input */}
+            <div className="border-t p-4">
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon">
+                  <ImageIcon className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <Paperclip className="h-5 w-5" />
+                </Button>
+                <Input
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                />
+                <Button variant="ghost" size="icon">
+                  <Smile className="h-5 w-5" />
+                </Button>
+                <Button onClick={sendMessage} disabled={!message.trim()}>
+                  <Send className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            Select a conversation to start messaging
+          </div>
+        )}
+      </div>
     </div>
   );
 }
