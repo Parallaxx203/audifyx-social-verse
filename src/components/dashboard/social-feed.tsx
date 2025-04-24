@@ -6,37 +6,94 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Heart, MessageCircle, Share2, Music, Image, PlayCircle, MoreHorizontal } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
+import { usePoints, useToast } from "@/hooks"; // Assuming useToast is available for toasts
 
 export function SocialFeed() {
   const { user } = useAuth();
   const { data: profile } = useProfile(user?.id);
   const [post, setPost] = useState("");
-const { awardPoints } = usePoints();
+  const { awardPoints } = usePoints();
+  const toast = useToast(); // Get the toast function
 
-const handlePost = async () => {
-  if (!post.trim()) return;
-  
-  // Create post logic here
-  
-  await awardPoints('POST_CREATION');
-  setPost("");
-};
+  const handlePost = async () => {
+    if (!post.trim()) return;
 
-const handleLike = async (postId: number) => {
-  // Like post logic here
-  
-  await awardPoints('LIKE', { postId });
-};
+    // Create post logic here
 
-const handleComment = async (postId: number) => {
-  // Comment logic here
-  
-  await awardPoints('COMMENT', { postId });
-};
+    try {
+      await awardPoints('POST_CREATION');
+      toast({
+        title: "Points awarded!",
+        description: "You earned points for creating a post",
+      });
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create post. Please try again later.",
+        variant: 'destructive' // Assuming destructive variant exists
+      });
+    }
+    setPost("");
+  };
+
+  const handleLike = async (postId: string) => {
+    try {
+      // Handle like logic here
+      await awardPoints('LIKE', { postId });
+      toast({
+        title: "Points awarded!",
+        description: "You earned points for liking this post",
+      });
+    } catch (error) {
+      console.error('Error liking post:', error);
+      toast({
+        title: "Error",
+        description: "Failed to like post. Please try again later.",
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleComment = async (postId: string) => {
+    try {
+      // Handle comment logic here
+      await awardPoints('COMMENT', { postId });
+      toast({
+        title: "Points awarded!",
+        description: "You earned points for commenting on this post",
+      });
+    } catch (error) {
+      console.error('Error commenting on post:', error);
+      toast({
+        title: "Error",
+        description: "Failed to comment on post. Please try again later.",
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleShare = async (postId: string) => {
+    try {
+      // Handle share logic here
+      await awardPoints('SHARE', { postId });
+      toast({
+        title: "Points awarded!",
+        description: "You earned points for sharing this post",
+      });
+    } catch (error) {
+      console.error('Error sharing post:', error);
+      toast({
+        title: "Error",
+        description: "Failed to share post. Please try again later.",
+        variant: 'destructive'
+      });
+    }
+  };
   const [showStories, setShowStories] = useState(true);
   const [posts, setPosts] = useState([
     {
-      id: 1,
+      id: "1", // Changed to string
       username: "demo_user",
       avatar: "/placeholder.svg",
       content: "Just dropped a new track! 🎵 Check it out!",
@@ -49,7 +106,7 @@ const handleComment = async (postId: number) => {
       timestamp: "2h"
     },
     {
-      id: 2,
+      id: "2", // Changed to string
       username: "artist_official",
       avatar: "/placeholder.svg",
       content: "Live streaming tonight! Don't miss it 🎤",
@@ -69,7 +126,7 @@ const handleComment = async (postId: number) => {
     { id: 3, username: "user3", avatar: "/placeholder.svg", hasUnseenStory: false },
   ];
 
-  const handleLike = (postId: number) => {
+  const handleLikePost = (postId: string) => {
     setPosts(posts.map(post => 
       post.id === postId ? { ...post, isLiked: !post.isLiked, likes: post.isLiked ? post.likes - 1 : post.likes + 1 } : post
     ));
@@ -119,7 +176,7 @@ const handleComment = async (postId: number) => {
                   Add Media
                 </Button>
               </div>
-              <Button className="bg-audifyx-purple hover:bg-audifyx-purple-vivid">
+              <Button onClick={handlePost} className="bg-audifyx-purple hover:bg-audifyx-purple-vivid">
                 Post
               </Button>
             </div>
@@ -142,11 +199,11 @@ const handleComment = async (postId: number) => {
               <Heart className={`w-4 h-4 mr-2 ${post.isLiked ? 'fill-audifyx-purple' : ''}`} />
               {post.likes}
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={() => handleComment(post.id)}> {/* Added onClick handler */}
               <MessageCircle className="w-4 h-4 mr-2" />
               {post.comments}
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={() => handleShare(post.id)}> {/* Added onClick handler */}
               <Share2 className="w-4 h-4" />
             </Button>
           </div>
