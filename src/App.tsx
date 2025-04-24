@@ -7,18 +7,19 @@ import { AuthProvider } from "./contexts/AuthContext";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile";
+import Profile from "@/pages/Profile";
 import NotFound from "./pages/NotFound";
 import Discover from "./pages/Discover";
 import LiveStream from "./pages/LiveStream";
 import AllUsers from "./pages/AllUsers";
 import Messages from "./pages/Messages";
 import Call from "./pages/Call";
-import Settings from "./pages/Settings";
+import Settings from "@/pages/Settings";
 import CreatorHub from "./pages/CreatorHub";
 import BrandHub from "./pages/BrandHub";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import ViewProfile from "@/pages/ViewProfile";
+import TestDB from "@/pages/TestDB";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,7 @@ const App = () => (
                 <BrandHub />
               </ProtectedRoute>
             } />
+            <Route path="/test-db" element={<TestDB />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
