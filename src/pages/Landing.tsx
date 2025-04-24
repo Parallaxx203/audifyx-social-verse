@@ -88,6 +88,21 @@ export default function Landing() {
       <footer className="mt-auto py-8 border-t border-audifyx-purple/20">
         <div className="container mx-auto px-4 text-center">
           <p className="text-gray-400">© 2024 Audifyx. All rights reserved.</p>
+          
+          <div className="flex justify-center gap-6 mt-4">
+            <a href="#" className="text-gray-400 hover:text-audifyx-purple transition">
+              Discord
+            </a>
+            <a href="#" className="text-gray-400 hover:text-audifyx-purple transition">
+              Instagram
+            </a>
+            <a href="#" className="text-gray-400 hover:text-audifyx-purple transition">
+              Terms
+            </a>
+            <a href="#" className="text-gray-400 hover:text-audifyx-purple transition">
+              Privacy
+            </a>
+          </div>
         </div>
       </footer>
     </div>

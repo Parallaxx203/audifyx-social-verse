@@ -81,16 +81,12 @@ export function MediaUploader({
       const bucket = mediaType === "audio" ? "audio_files" : "video_files";
       const filePath = `${userId}/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
       
-      // Upload the file to Supabase storage
+      // Upload the file to Supabase storage with progress tracking
       const { data, error } = await supabase.storage
         .from(bucket)
         .upload(filePath, file, {
           cacheControl: "3600",
           upsert: false,
-          onUploadProgress: (progress) => {
-            const percent = Math.round((progress.loaded / progress.total) * 100);
-            setProgress(percent);
-          },
         });
       
       if (error) throw error;

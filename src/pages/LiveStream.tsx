@@ -1,233 +1,310 @@
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sidebar } from "@/components/dashboard/sidebar";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Video, Twitch, Users } from "lucide-react";
-import { useTwitchConnection, useTwitchStatus } from "@/hooks/useTwitchConnection";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Radio, Users, Play, Share, ExternalLink } from "lucide-react";
+import { useTwitchStatus, useTwitchConnection } from "@/hooks/useTwitchConnection";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
+import { Link } from "react-router-dom";
 
 export default function LiveStream() {
   const isMobile = useIsMobile();
   const [user, setUser] = useState<any>(null);
-  const [isTwitchModalOpen, setIsTwitchModalOpen] = useState(false);
-  const [twitchUsername, setTwitchUsername] = useState('');
-  const [isLiveStreaming, setIsLiveStreaming] = useState(false);
-
+  const [twitchUsername, setTwitchUsername] = useState("");
+  const [openConnectDialog, setOpenConnectDialog] = useState(false);
+  
   useEffect(() => {
     const userInfo = localStorage.getItem("audifyx-user");
     if (userInfo) {
       setUser(JSON.parse(userInfo));
     }
   }, []);
+  
+  // Twitch connection hooks
+  const { twitchConnection, isLoading: isTwitchStatusLoading, fetchTwitchConnection } = useTwitchStatus(user?.id || "");
+  const { connectTwitch, disconnectTwitch, isConnecting } = useTwitchConnection(user?.id || "");
 
-  const { connectTwitch, disconnectTwitch, isConnecting } = useTwitchConnection(user?.id);
-  const { twitchConnection, isLoading, fetchTwitchConnection } = useTwitchStatus(user?.id);
+  const handleTwitchConnect = async () => {
+    try {
+      await connectTwitch(twitchUsername);
+      setTwitchUsername("");
+      fetchTwitchConnection();
+      setOpenConnectDialog(false);
+      toast({
+        title: "Success",
+        description: "Twitch account connected successfully"
+      });
+    } catch (error) {
+      console.error("Error connecting Twitch:", error);
+    }
+  };
 
   useEffect(() => {
     if (user?.id) {
       fetchTwitchConnection();
     }
-  }, [user?.id, fetchTwitchConnection]);
+  }, [user?.id]);
 
-  const handleConnectTwitch = async () => {
-    const result = await connectTwitch(twitchUsername);
-    if (result) {
-      setIsTwitchModalOpen(false);
-      fetchTwitchConnection();
+  // Mock livestreams data
+  const mockLivestreams = [
+    {
+      id: 1,
+      username: "BassKing42",
+      title: "Mixing new tracks live - come join!",
+      viewerCount: 387,
+      thumbnailUrl: "https://placehold.co/600x400/252525/8a2be2?text=BassKing42+Live",
+      platform: "Twitch"
+    },
+    {
+      id: 2,
+      username: "MelodyMaster",
+      title: "Piano improvisation & chill beats",
+      viewerCount: 216,
+      thumbnailUrl: "https://placehold.co/600x400/252525/1EAEDB?text=MelodyMaster+Live",
+      platform: "YouTube"
+    },
+    {
+      id: 3,
+      username: "VocalQueen",
+      title: "Vocal practice & covers - taking requests",
+      viewerCount: 158,
+      thumbnailUrl: "https://placehold.co/600x400/252525/9b87f5?text=VocalQueen+Live",
+      platform: "Twitch"
     }
-  };
-  
-  const handleDisconnectTwitch = async () => {
-    await disconnectTwitch();
-    setIsTwitchModalOpen(false);
-    fetchTwitchConnection();
-  };
-  
-  const handleGoLive = () => {
-    if (!twitchConnection) {
-      toast({
-        title: "Twitch Not Connected",
-        description: "Please connect your Twitch account first.",
-        variant: "destructive"
-      });
-      setIsTwitchModalOpen(true);
-      return;
-    }
-    
-    setIsLiveStreaming(!isLiveStreaming);
-    toast({
-      title: isLiveStreaming ? "Stream Ended" : "Going Live",
-      description: isLiveStreaming 
-        ? "Your stream has ended" 
-        : "You are now live streaming! Connect to your Twitch account to start broadcasting."
-    });
-  };
-
-  if (!user) return null;
-
-  const renderTwitchEmbed = () => {
-    if (!twitchConnection) {
-      return (
-        <div className="bg-audifyx-purple-dark/70 rounded-xl p-8 text-center">
-          <p className="text-gray-300 mb-4">
-            Connect your Twitch account to see your live streams.
-          </p>
-          <Button 
-            variant="outline" 
-            className="border-audifyx-purple/30 hover:bg-audifyx-purple/20"
-            onClick={() => setIsTwitchModalOpen(true)}
-          >
-            <Twitch className="mr-2 h-4 w-4" /> Connect Twitch
-          </Button>
-        </div>
-      );
-    }
-    
-    return (
-      <div className="space-y-6">
-        <div className="bg-audifyx-purple-dark/70 rounded-xl overflow-hidden">
-          <div className="aspect-video w-full">
-            {isLiveStreaming ? (
-              <div className="relative w-full h-full">
-                <iframe
-                  src={`https://player.twitch.tv/?channel=${twitchConnection.twitch_username}&parent=${window.location.hostname}`}
-                  allowFullScreen
-                  className="w-full h-full"
-                  title="Twitch Stream"
-                />
-              </div>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-audifyx-purple-dark to-black">
-                <div className="text-center p-6">
-                  <Twitch className="h-12 w-12 mx-auto mb-4 text-audifyx-purple" />
-                  <h3 className="text-xl font-bold mb-2">Ready to Stream</h3>
-                  <p className="text-gray-400">
-                    Click "Go Live" to start your stream on Twitch as {twitchConnection.twitch_username}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="p-4">
-            <h3 className="font-bold text-lg">Your Stream</h3>
-            <p className="text-gray-400 text-sm">
-              {isLiveStreaming 
-                ? "You are currently live streaming to Twitch" 
-                : "Start your stream on Twitch to go live"
-              }
-            </p>
-          </div>
-        </div>
-        
-        <div className="bg-audifyx-purple-dark/50 rounded-xl p-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-audifyx-purple" />
-              <span className="font-medium">Viewers: {isLiveStreaming ? "Loading..." : "0"}</span>
-            </div>
-            <Button 
-              onClick={handleGoLive}
-              className={isLiveStreaming ? "bg-red-500 hover:bg-red-600" : "bg-audifyx-purple hover:bg-audifyx-purple-vivid"}
-            >
-              {isLiveStreaming ? "End Stream" : "Go Live"}
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-audifyx text-white">
       <div className="flex">
         <Sidebar />
-        <main className={`flex-1 ${isMobile ? 'ml-0' : 'ml-64'} pb-8 px-4`}>
-          <div className="max-w-4xl mx-auto py-8">
-            <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
-              <Video className="w-6 h-6"/> Watch Creators Live Now
-            </h1>
-            <div className="mb-6 flex items-center gap-4">
-              {!twitchConnection ? (
-                <Button 
-                  variant="outline" 
-                  className="border-audifyx-purple/30 hover:bg-audifyx-purple/20"
-                  onClick={() => setIsTwitchModalOpen(true)}
-                >
-                  <Twitch className="mr-2 h-4 w-4" /> Connect Twitch
-                </Button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Twitch className="h-6 w-6 text-purple-500" />
-                  <span>Twitch: {twitchConnection.twitch_username}</span>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="ml-2 border-red-500/30 text-red-500 hover:bg-red-500/10"
-                    onClick={() => setIsTwitchModalOpen(true)}
-                  >
-                    Disconnect
-                  </Button>
-                </div>
+        <main className={`flex-1 ${isMobile ? 'ml-0' : 'ml-64'} p-4 md:p-8`}>
+          <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+                  <Radio className="w-6 h-6 text-audifyx-purple" /> Live Streams
+                </h1>
+                <p className="text-gray-300 mt-1">
+                  Watch and interact with creators streaming live music
+                </p>
+              </div>
+              
+              {user?.accountType === "creator" && (
+                <>
+                  {twitchConnection ? (
+                    <div className="mt-4 md:mt-0 flex flex-col items-start md:items-end">
+                      <span className="text-sm text-audifyx-purple mb-2">
+                        Connected as: <strong>{twitchConnection.twitch_username}</strong>
+                      </span>
+                      <div className="flex gap-2">
+                        <Button 
+                          className="bg-audifyx-purple"
+                          onClick={() => window.open(`https://twitch.tv/${twitchConnection.twitch_username}`, '_blank')}
+                        >
+                          Go Live <ExternalLink className="ml-2 h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => disconnectTwitch()}
+                          className="border-audifyx-purple/30"
+                        >
+                          Disconnect
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Dialog open={openConnectDialog} onOpenChange={setOpenConnectDialog}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          className="mt-4 md:mt-0 bg-audifyx-purple hover:bg-audifyx-purple-vivid"
+                        >
+                          Connect Twitch
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="bg-audifyx-purple-dark/90 border-audifyx-purple/30">
+                        <DialogHeader>
+                          <DialogTitle>Connect to Twitch</DialogTitle>
+                          <DialogDescription>
+                            Link your Twitch account to start streaming live on Audifyx
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                          <label className="text-sm font-medium mb-2 block">
+                            Twitch Username
+                          </label>
+                          <Input
+                            placeholder="YourTwitchUsername"
+                            value={twitchUsername}
+                            onChange={(e) => setTwitchUsername(e.target.value)}
+                            className="bg-background/10 border-audifyx-purple/30"
+                          />
+                          <p className="text-xs text-gray-400 mt-2">
+                            Enter your Twitch username to connect your account
+                          </p>
+                        </div>
+                        <DialogFooter>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setOpenConnectDialog(false)}
+                            className="border-audifyx-purple/30"
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={handleTwitchConnect}
+                            disabled={!twitchUsername.trim() || isConnecting}
+                            className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
+                          >
+                            {isConnecting ? "Connecting..." : "Connect"}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </>
               )}
-              <Button 
-                className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
-                onClick={handleGoLive}
-              >
-                {isLiveStreaming ? "End Stream" : "Go Live"}
-              </Button>
             </div>
             
-            {renderTwitchEmbed()}
+            {twitchConnection && user?.accountType === "creator" && (
+              <Card className="mb-8 border-audifyx-purple/20 bg-gradient-to-br from-audifyx-purple/20 to-audifyx-blue/20">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                      <h2 className="text-xl font-semibold flex items-center gap-2">
+                        Your Twitch Stream
+                      </h2>
+                      <p className="text-gray-300">
+                        Go live on Twitch to share your music and connect with your audience
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <a 
+                        href={`https://twitch.tv/${twitchConnection.twitch_username}`} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-audifyx-purple hover:underline"
+                      >
+                        twitch.tv/{twitchConnection.twitch_username} <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            {!twitchConnection && user?.accountType === "creator" && (
+              <Card className="mb-8 border-audifyx-purple/20 bg-gradient-to-br from-audifyx-purple/20 to-audifyx-blue/20">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div>
+                      <h2 className="text-xl font-semibold">Start Streaming</h2>
+                      <p className="text-gray-300">
+                        Connect your Twitch account to start sharing your music live
+                      </p>
+                    </div>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button className="bg-audifyx-purple hover:bg-audifyx-purple-vivid">
+                          Connect Twitch
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="bg-audifyx-purple-dark/90 border-audifyx-purple/30">
+                        <DialogHeader>
+                          <DialogTitle>Connect to Twitch</DialogTitle>
+                          <DialogDescription>
+                            Link your Twitch account to start streaming live on Audifyx
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                          <label className="text-sm font-medium mb-2 block">
+                            Twitch Username
+                          </label>
+                          <Input
+                            placeholder="YourTwitchUsername"
+                            value={twitchUsername}
+                            onChange={(e) => setTwitchUsername(e.target.value)}
+                            className="bg-background/10 border-audifyx-purple/30"
+                          />
+                        </div>
+                        <DialogFooter>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setOpenConnectDialog(false)}
+                            className="border-audifyx-purple/30"
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={handleTwitchConnect}
+                            disabled={!twitchUsername.trim() || isConnecting}
+                            className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
+                          >
+                            {isConnecting ? "Connecting..." : "Connect"}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5" /> Featured Streams
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {mockLivestreams.map((stream) => (
+                <Card 
+                  key={stream.id} 
+                  className="overflow-hidden border-audifyx-purple/20 bg-audifyx-purple-dark/30 hover:shadow-lg hover:shadow-audifyx-purple/10 transition-all duration-300"
+                >
+                  <div className="relative">
+                    <img 
+                      src={stream.thumbnailUrl} 
+                      alt={stream.title} 
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded flex items-center">
+                      <Users className="w-3 h-3 mr-1" /> {stream.viewerCount}
+                    </div>
+                    <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                      {stream.platform}
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 bg-black/50 transition-opacity duration-300">
+                      <Button className="bg-audifyx-purple hover:bg-audifyx-purple-vivid">
+                        <Play className="mr-2 h-4 w-4" /> Watch Stream
+                      </Button>
+                    </div>
+                  </div>
+                  <CardContent className="pt-4">
+                    <h3 className="font-bold mb-1 truncate">{stream.title}</h3>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-300">@{stream.username}</span>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Share className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            <div className="text-center py-4">
+              <p className="text-gray-400 mb-2">Don't see the content you're looking for?</p>
+              <Link to="/settings">
+                <Button variant="link" className="text-audifyx-purple">
+                  Connect your streaming accounts in Settings
+                </Button>
+              </Link>
+            </div>
           </div>
         </main>
       </div>
-
-      <Dialog open={isTwitchModalOpen} onOpenChange={setIsTwitchModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {twitchConnection ? "Disconnect Twitch" : "Connect Twitch"}
-            </DialogTitle>
-          </DialogHeader>
-          {twitchConnection ? (
-            <div>
-              <p>Are you sure you want to disconnect your Twitch account?</p>
-              <div className="flex justify-end gap-4 mt-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsTwitchModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  variant="destructive"
-                  onClick={handleDisconnectTwitch}
-                >
-                  Disconnect
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <Input 
-                placeholder="Enter Twitch Username" 
-                value={twitchUsername}
-                onChange={(e) => setTwitchUsername(e.target.value)}
-              />
-              <Button 
-                onClick={handleConnectTwitch} 
-                disabled={!twitchUsername || isConnecting}
-                className="w-full"
-              >
-                {isConnecting ? "Connecting..." : "Connect Twitch"}
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
