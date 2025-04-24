@@ -1,23 +1,23 @@
-
 import { useEffect } from "react";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
+import { SocialFeed } from "@/components/dashboard/social-feed";
 
 export default function Dashboard() {
   const isMobile = useIsMobile();
   const { user } = useAuth();
-  
+
   // Get account type from user metadata
   const accountType = user?.user_metadata?.accountType || "listener";
-  
+
   return (
     <div className="min-h-screen bg-gradient-audifyx text-white">
       <div className="flex">
         <Sidebar />
-        
+
         <main className={`flex-1 ${isMobile ? 'ml-0' : 'ml-64'} p-4 md:p-8`}>
           {/* Banner */}
           <Card className="mb-8 border-audifyx-purple/20 bg-gradient-to-br from-audifyx-purple/20 to-audifyx-blue/20 backdrop-blur-sm overflow-hidden">
@@ -46,7 +46,7 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Social Feed */}
           <section className="mb-8">
             <h3 className="text-xl font-semibold mb-4">Your Feed</h3>
@@ -75,7 +75,7 @@ export default function Dashboard() {
               )}
             </div>
           </section>
-          
+
           {/* Recent Posts Section */}
           <section>
             <h3 className="text-xl font-semibold mb-4">Recent Posts</h3>
