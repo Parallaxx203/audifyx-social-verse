@@ -9,23 +9,22 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useProfile } from "@/hooks/useProfile";
 import { EditProfileModal } from "@/components/profile/EditProfileModal";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Profile() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    const userInfo = localStorage.getItem("audifyx-user");
-    if (!userInfo) {
-      navigate("/");
+    if (!user) {
+      navigate("/auth");
       return;
     }
-    setUser(JSON.parse(userInfo));
     setIsLoading(false);
-  }, [navigate]);
+  }, [navigate, user]);
 
   const { data: profile } = useProfile(user?.id);
 
@@ -48,11 +47,10 @@ export default function Profile() {
             </Button>
           </div>
           <ProfileHeader isOwnProfile={true} />
-          <ProfileMetrics accountType={user.accountType} />
+          <ProfileMetrics accountType={user?.user_metadata?.accountType || 'listener'} />
           <div className="px-4">
-            <ProfileTabs isOwnProfile={true} accountType={user.accountType} />
+            <ProfileTabs isOwnProfile={true} accountType={user?.user_metadata?.accountType || 'listener'} />
           </div>
-          {/* Edit modal */}
           {profile && (
             <EditProfileModal open={editOpen} onOpenChange={setEditOpen} profile={profile} />
           )}
