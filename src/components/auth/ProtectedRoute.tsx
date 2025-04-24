@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, accountType } = useAuth();
   
   if (isLoading) {
     return (
@@ -24,16 +24,8 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
   }
   
   // Check role requirement if specified
-  if (requiredRole) {
-    const accountType = user.user_metadata?.accountType;
-    
-    if (requiredRole === "creator" && accountType !== "creator") {
-      return <Navigate to="/dashboard" />;
-    }
-    
-    if (requiredRole === "brand" && accountType !== "brand") {
-      return <Navigate to="/dashboard" />;
-    }
+  if (requiredRole && accountType !== requiredRole) {
+    return <Navigate to="/dashboard" />;
   }
   
   return <>{children}</>;

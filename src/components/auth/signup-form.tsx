@@ -35,7 +35,10 @@ export function SignupForm({ defaultAccountType = "listener" }: SignupFormProps)
         options: {
           data: {
             username,
-            accountType
+            accountType,
+            points: 0,
+            followers: 0,
+            earnings: 0
           }
         }
       });
@@ -46,7 +49,7 @@ export function SignupForm({ defaultAccountType = "listener" }: SignupFormProps)
       
       toast({
         title: "Account created!",
-        description: "Welcome to Audifyx.",
+        description: `Welcome to Audifyx as a ${accountType}!`,
       });
       
       navigate("/dashboard");

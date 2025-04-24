@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
+  accountType?: 'listener' | 'creator' | 'brand';
   signOut: () => Promise<void>;
 }
 
@@ -16,6 +17,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [accountType, setAccountType] = useState<'listener' | 'creator' | 'brand'>();
 
   useEffect(() => {
     // Set up auth state listener first
@@ -23,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        setAccountType(session?.user?.user_metadata?.accountType);
         setIsLoading(false);
       }
     );
@@ -31,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setAccountType(session?.user?.user_metadata?.accountType);
       setIsLoading(false);
     });
 
@@ -47,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     session,
     isLoading,
+    accountType,
     signOut
   };
 

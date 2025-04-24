@@ -511,6 +511,7 @@ export type Database = {
           id: string
           is_online: boolean | null
           last_seen: string | null
+          points: number | null
           updated_at: string
           username: string
           website: string | null
@@ -525,6 +526,7 @@ export type Database = {
           id: string
           is_online?: boolean | null
           last_seen?: string | null
+          points?: number | null
           updated_at?: string
           username: string
           website?: string | null
@@ -539,6 +541,7 @@ export type Database = {
           id?: string
           is_online?: boolean | null
           last_seen?: string | null
+          points?: number | null
           updated_at?: string
           username?: string
           website?: string | null
