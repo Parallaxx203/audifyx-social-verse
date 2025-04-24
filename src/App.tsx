@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +18,7 @@ import Settings from "./pages/Settings";
 import CreatorHub from "./pages/CreatorHub";
 import BrandHub from "./pages/BrandHub";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import ViewProfile from "@/pages/ViewProfile";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +42,7 @@ const App = () => (
                 <Profile />
               </ProtectedRoute>
             } />
+            <Route path="/profile/:username" element={<ViewProfile />} />
             <Route path="/discover" element={
               <ProtectedRoute>
                 <Discover />

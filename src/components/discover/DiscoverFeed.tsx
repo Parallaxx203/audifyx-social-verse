@@ -4,7 +4,38 @@ import { useDiscoveryFeed } from "@/hooks/useDiscoveryFeed";
 import { Card } from "@/components/ui/card";
 import { Music, Image, User } from "lucide-react";
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UserList } from "@/components/users/UserList";
+import { useOnlineUsers } from "@/hooks/useOnlineUsers";
+
 export function DiscoverFeed() {
+  const { data: suggestedUsers } = useOnlineUsers("");
+  
+  return (
+    <Tabs defaultValue="trending" className="w-full">
+      <TabsList className="mb-4">
+        <TabsTrigger value="trending">Trending</TabsTrigger>
+        <TabsTrigger value="creators">Top Creators</TabsTrigger>
+        <TabsTrigger value="suggestions">Suggested</TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="trending">
+        <div className="grid gap-4">
+          {/* Add trending content */}
+        </div>
+      </TabsContent>
+      
+      <TabsContent value="creators">
+        <div className="grid gap-4">
+          {/* Add top creators */}
+        </div>
+      </TabsContent>
+      
+      <TabsContent value="suggestions">
+        <UserList users={suggestedUsers || []} />
+      </TabsContent>
+    </Tabs>
+  );
   const { data: feed, isLoading } = useDiscoveryFeed();
 
   if (isLoading) return <div>Loading...</div>;

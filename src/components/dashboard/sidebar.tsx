@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   Home, Search, Radio, Users, MessageSquare, Phone, 
-  User, Settings, Wallet, Pencil, BarChart, Menu, X, LogOut
+  User, Settings, Wallet, Pencil, BarChart, Menu, X, LogOut, Music, Building
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
@@ -22,7 +21,7 @@ export function Sidebar({ className }: SidebarProps) {
   const location = useLocation();
   const isMobile = useIsMobile();
   const { user, signOut } = useAuth();
-  
+
   // Get account type from user metadata
   const accountType = user?.user_metadata?.accountType || "listener";
 
@@ -63,9 +62,9 @@ export function Sidebar({ className }: SidebarProps) {
   if (accountType === "listener") {
     menuItems.push({ name: "Rewards Wallet", icon: Wallet, path: "/rewards" });
   } else if (accountType === "creator") {
-    menuItems.push({ name: "Creator Hub", icon: Pencil, path: "/creator-hub" });
+    menuItems.push({ name: "Creator Hub", icon: Music, path: "/creator-hub" }); // Added Music icon
   } else if (accountType === "brand") {
-    menuItems.push({ name: "Brand Hub", icon: BarChart, path: "/brand-hub" });
+    menuItems.push({ name: "Brand Hub", icon: Building, path: "/brand-hub" }); // Added Building icon
   }
 
   return (

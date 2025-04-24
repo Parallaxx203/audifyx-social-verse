@@ -47,6 +47,12 @@ export default function Dashboard() {
             </CardContent>
           </Card>
           
+          {/* Social Feed */}
+          <section className="mb-8">
+            <h3 className="text-xl font-semibold mb-4">Your Feed</h3>
+            <SocialFeed />
+          </section>
+
           {/* Latest Tracks Section */}
           <section className="mb-8">
             <h3 className="text-xl font-semibold mb-4">Latest Tracks</h3>
