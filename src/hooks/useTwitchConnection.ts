@@ -7,6 +7,15 @@ export function useTwitchConnection(userId: string) {
   const [isConnecting, setIsConnecting] = useState(false);
 
   const connectTwitch = async (twitchUsername: string) => {
+    if (!twitchUsername.trim()) {
+      toast({
+        title: "Username Required",
+        description: "Please enter a valid Twitch username",
+        variant: "destructive",
+      });
+      return null;
+    }
+    
     setIsConnecting(true);
     try {
       const { data, error } = await supabase
@@ -26,13 +35,14 @@ export function useTwitchConnection(userId: string) {
       });
 
       return data;
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Connection Failed",
-        description: "Could not connect Twitch account",
+        description: error.message || "Could not connect Twitch account",
         variant: "destructive",
       });
       console.error("Twitch connection error:", error);
+      return null;
     } finally {
       setIsConnecting(false);
     }
@@ -51,13 +61,16 @@ export function useTwitchConnection(userId: string) {
         title: "Twitch Disconnected",
         description: "Twitch account has been disconnected",
       });
-    } catch (error) {
+      
+      return true;
+    } catch (error: any) {
       toast({
         title: "Disconnection Failed",
-        description: "Could not disconnect Twitch account",
+        description: error.message || "Could not disconnect Twitch account",
         variant: "destructive",
       });
       console.error("Twitch disconnection error:", error);
+      return false;
     }
   };
 
@@ -69,6 +82,11 @@ export function useTwitchStatus(userId: string) {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchTwitchConnection = async () => {
+    if (!userId) {
+      setIsLoading(false);
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const { data, error } = await supabase

@@ -49,11 +49,11 @@ export default function Landing() {
       <section className="container mx-auto px-4 py-12 md:py-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div className="animate-fade-in">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight font-handwriting">
               The Social Music Platform
             </h1>
-            <p className="text-xl md:text-2xl text-gray-300 mb-8 leading-relaxed">
-              Connect with creators, share your favorite music, and earn rewards in a fiber community built for music creators.
+            <p className="text-xl md:text-2xl text-gray-300 mb-8 leading-relaxed font-handwriting">
+              Connect with creators, share your favorite music, and earn rewards in a vibrant community built for music creators.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button 
