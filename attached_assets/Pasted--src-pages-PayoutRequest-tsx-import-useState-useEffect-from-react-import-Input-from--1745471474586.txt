@@ -1,0 +1,131 @@
+// src/pages/PayoutRequest.tsx
+import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
+
+export default function PayoutRequest() {
+  const { user } = useAuth();
+  const [points, setPoints] = useState(0);
+  const [amount, setAmount] = useState(0);
+  const [wallet, setWallet] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [requests, setRequests] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user?.user_metadata?.role === "admin") {
+      setIsAdmin(true);
+      fetchRequests();
+    }
+  }, [user]);
+
+  const fetchRequests = async () => {
+    const { data, error } = await supabase.from("PayoutRequests").select("*").order("created_at", { ascending: false });
+    if (!error) setRequests(data);
+  };
+
+  const handleSubmit = async () => {
+    if (!user || !wallet || amount > points || amount <= 0) return;
+    setLoading(true);
+
+    let imageUrl = "";
+    if (image) {
+      const { data, error } = await supabase.storage
+        .from("payout-images")
+        .upload(`requests/${user.id}-${Date.now()}.jpg`, image);
+
+      if (!error) {
+        imageUrl = supabase.storage.from("payout-images").getPublicUrl(data.path).publicUrl;
+      }
+    }
+
+    const { error: dbError } = await supabase.from("PayoutRequests").insert({
+      user_id: user.id,
+      username: user.user_metadata.username,
+      points,
+      amount_usd: amount,
+      wallet,
+      image_url: imageUrl,
+      status: "pending",
+    });
+
+    if (!dbError) {
+      await fetch("https://formsubmit.co/ajax/loops4aiden@gmail.com", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          name: user.user_metadata.username,
+          message: `New payout request:\nPoints: ${points}\nUSD: $${amount}\nWallet: ${wallet}`,
+        }),
+      });
+    }
+
+    setLoading(false);
+    alert("Request submitted successfully.");
+  };
+
+  return (
+    <div className="p-6 max-w-3xl mx-auto space-y-6">
+      <Card>
+        <CardContent className="space-y-4">
+          <h2 className="text-xl font-bold">Request a Payout</h2>
+          <Input
+            type="number"
+            placeholder="Points Earned"
+            value={points}
+            onChange={(e) => setPoints(Number(e.target.value))}
+          />
+          <Input
+            type="number"
+            placeholder="Amount to Redeem (USD)"
+            value={amount}
+            onChange={(e) => setAmount(Number(e.target.value))}
+          />
+          <Input
+            type="text"
+            placeholder="Solana Wallet Address"
+            value={wallet}
+            onChange={(e) => setWallet(e.target.value)}
+          />
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files?.[0] || null)}
+          />
+          <Button onClick={handleSubmit} disabled={loading}>
+            {loading ? "Submitting..." : "Submit Payout Request"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {isAdmin && (
+        <Card>
+          <CardContent>
+            <h2 className="text-xl font-bold mb-4">Admin Dashboard: Payout Requests</h2>
+            <div className="space-y-4">
+              {requests.map((req) => (
+                <div key={req.id} className="border rounded p-4 shadow">
+                  <p><strong>User:</strong> {req.username}</p>
+                  <p><strong>Points:</strong> {req.points}</p>
+                  <p><strong>USD:</strong> ${req.amount_usd}</p>
+                  <p><strong>Wallet:</strong> {req.wallet}</p>
+                  {req.image_url && (
+                    <img src={req.image_url} alt="verification" className="w-32 mt-2" />
+                  )}
+                  <p><strong>Status:</strong> {req.status}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

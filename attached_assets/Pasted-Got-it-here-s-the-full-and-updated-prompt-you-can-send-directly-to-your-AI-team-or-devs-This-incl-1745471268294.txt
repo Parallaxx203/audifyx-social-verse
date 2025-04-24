@@ -1,0 +1,112 @@
+Got it — here's the full and updated prompt you can send directly to your AI team or devs. This includes everything you’ve asked for: fixes, new features, dashboards, the points system, and the Solana-based payout flow with email notification:
+
+---
+
+## 🛠️ Audifyx Platform Feedback, Fixes & New Feature Requirements
+
+This is a full breakdown of what needs to be fixed, added, and implemented to bring Audifyx up to standard for social interaction, creator tools, and monetization. **Please read everything carefully and implement each section.**
+
+---
+
+### ✅ General Additions
+- Implement a **Points System** across the app:
+  - Users earn points through:
+    - Posting content
+    - Gaining likes/comments/reposts
+    - Streaming or going live
+    - Referrals (optional: invite system)
+- Points should be visible on user profiles.
+- Add a **USD conversion display** for points.
+  - Ex: 1000 points = $10
+- Points can be **redeemed through a request form**, with payouts via **Solana wallet**.
+
+---
+
+### 🏠 1. Home Dashboard
+- Make it more social:
+  - Show posts from **followed users** and **trending creators**.
+  - Include **like, comment, and repost** buttons on each post.
+- Display **how many points earned** from each post (optional but encouraged).
+- Trending creators should be sorted based on interactions and points earned.
+
+---
+
+### 🔍 2. Discover Tab
+- Fully redesign to include:
+  - Trending songs/music.
+  - Top creators of the week.
+  - Suggested users to follow (based on activity/interests).
+- Ensure dynamic filtering, not hardcoded content.
+
+---
+
+### 📺 3. Livestream Tab
+- Remove **ALL dummy content** from user livestreams.
+- Only show users **who are currently live**.
+- Include viewer count and allow quick follow/join interaction.
+- Show points earned from live streams (per view, per like).
+
+---
+
+### 👤 4. Profiles
+- Clicking any profile (from post, livestream, etc.) should take the user to their **public profile page**.
+- Profile must include:
+  - Display name, bio, followers/following count.
+  - Public posts or songs.
+  - Total points earned.
+- Add **Follow/Unfollow** button on every profile.
+- Include **DM and Call** from profile screen.
+
+---
+
+### 💬 5. Messaging & Calling
+- Add a scrollable list of all users (or filtered to following/followers).
+- When inside a message/call view:
+  - Display avatar + name.
+  - Allow quick profile access via tap/click.
+
+---
+
+### 👣 6. Bottom Navigation: Profile Tab
+- This **must route to the currently logged-in user's profile**.
+- Ensure persistent routing — doesn't reset after refreshing.
+
+---
+
+### 💼 7. Creator & Brand Hubs
+- Fix the **Creator Hub** and **Brand Hub** buttons so they:
+  - Route to the full dashboards: `CreatorHub.tsx` and `BrandHub.tsx`
+  - Display stats like:
+    - Total content uploaded
+    - Followers/fans
+    - Points earned
+    - Earnings in USD
+
+---
+
+### 💸 8. Request Payout System (Points → USD → Solana)
+When users want to **redeem points for real currency**, they must:
+
+#### Add a new page: `Redeem.tsx` or `PayoutRequest.tsx`  
+**Form Fields Should Include:**
+- Upload profile image (for verification)
+- Display how many points earned
+- Input field: "How much are you redeeming?" (must be less than or equal to earned)
+- Show **conversion to USD**
+- Input: **Solana Wallet Address**
+- Submit Button: “Request Payout”
+
+#### When user submits:
+- Email the request details to: **loops4aiden@gmail.com**
+- Email body must include:
+  - Username
+  - How many points redeemed
+  - Wallet address
+  - USD equivalent
+- (Optional) Store payout requests in Supabase under `PayoutRequests` table with timestamp/status.
+
+---
+
+If needed, I can also help mock up the UI for the payout page or code the Supabase integration logic for form submissions and email alerts.
+
+Let me know when the first round of fixes are pushed so I can review the next phase.

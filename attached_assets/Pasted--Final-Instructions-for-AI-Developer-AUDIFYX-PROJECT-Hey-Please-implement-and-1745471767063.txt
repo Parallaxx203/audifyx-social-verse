@@ -1,0 +1,87 @@
+
+
+---
+
+**📢 Final Instructions for AI Developer – AUDIFYX PROJECT**
+
+Hey! Please implement and polish the project using the following comprehensive checklist. These include all the updates we’ve completed plus new items to finish:
+
+---
+
+### ✅ **What’s Already Done (Keep This Functional):**
+- Points system with balance tracking (`UserPoints`)
+- Solana payout requests with image upload, wallet entry, and email alert to `loops4aiden@gmail.com`
+- Admin dashboard to view, approve, or deny payout requests
+- Deduct points automatically after user submits a request
+
+---
+
+### 🆕 **Things to Add / Complete:**
+
+#### UI DESIGN OVERHAUL:
+- Fully redesign the UI using **Instagram-style aesthetics**:
+  - Light theme with modern Instagram gradients and layout
+  - Rounded profile avatars, clean post/feed layout
+  - Story-style top carousel (optional)
+  - Use Instagram’s post card format for feeds
+
+#### FUNCTIONALITY UPDATES:
+
+##### Home Dashboard:
+- Display posts from **followed users**
+- Show **trending creators** and posts
+- Add features: **like, comment, repost**
+
+##### Discover Tab:
+- Display top creators, songs, trending posts
+- Include **“Suggested users to follow”** carousel
+
+##### Livestream Tab:
+- Show **only live** users (no placeholder or dummy data)
+
+##### Profiles:
+- **Public profiles** viewable by clicking anywhere (posts, messages, livestreams)
+- Follow/unfollow buttons and post list per profile
+
+##### Messages & Calls:
+- Show full list of users to start a new message or call
+- Make profiles clickable from conversations
+
+##### Navigation:
+- Make the **bottom profile tab** open the logged-in user’s profile
+
+##### Creator & Brand Hub:
+- Link the buttons to fully developed **dashboard hubs**
+- Use clear card or grid UI for tools, analytics, and resources
+
+##### Dashboard Hub (New):
+- Create a main hub for:
+  - Points Overview
+  - Creator Tools
+  - Brand Resources
+  - Payout History
+
+#### Optional Enhancements:
+- Add **point-to-USD converter** (e.g., 100 points = $1)
+- Show **transaction history/log** of all point activity
+- Allow admin to manually **adjust user points** from the dashboard
+
+---
+
+### 📩 Payout System Flow:
+- Users fill out form with:
+  - Points earned
+  - USD they want to redeem
+  - Solana wallet
+  - Upload a screenshot
+- System sends email to: `loops4aiden@gmail.com`
+- Admin approves/denies via dashboard
+- Point balance auto-updates on approval
+
+---
+
+🧠 Let me know once everything above is fully implemented, so we can begin testing and prepare for the first launch phase. Thanks again!
+
+---
+
+Let me know if you want me to generate specific UI mockups or wireframes to help guide the redesign!

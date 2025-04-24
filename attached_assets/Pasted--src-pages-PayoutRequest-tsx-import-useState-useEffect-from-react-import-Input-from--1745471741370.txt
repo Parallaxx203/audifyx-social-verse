@@ -1,0 +1,181 @@
+// src/pages/PayoutRequest.tsx
+import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
+
+export default function PayoutRequest() {
+  const { user } = useAuth();
+  const [points, setPoints] = useState(0);
+  const [amount, setAmount] = useState(0);
+  const [wallet, setWallet] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [filter, setFilter] = useState("all");
+  const [userPoints, setUserPoints] = useState(0);
+
+  useEffect(() => {
+    if (user?.user_metadata?.role === "admin") {
+      setIsAdmin(true);
+      fetchRequests();
+    }
+    fetchUserPoints();
+  }, [user]);
+
+  const fetchUserPoints = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("UserPoints")
+      .select("points")
+      .eq("user_id", user.id)
+      .single();
+    if (!error && data) {
+      setUserPoints(data.points);
+    }
+  };
+
+  const fetchRequests = async () => {
+    const { data, error } = await supabase
+      .from("PayoutRequests")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!error) setRequests(data);
+  };
+
+  const handleSubmit = async () => {
+    if (!user || !wallet || amount > points || amount <= 0) return;
+    setLoading(true);
+
+    let imageUrl = "";
+    if (image) {
+      const { data, error } = await supabase.storage
+        .from("payout-images")
+        .upload(`requests/${user.id}-${Date.now()}.jpg`, image);
+
+      if (!error) {
+        imageUrl = supabase.storage.from("payout-images").getPublicUrl(data.path).publicUrl;
+      }
+    }
+
+    const { error: dbError } = await supabase.from("PayoutRequests").insert({
+      user_id: user.id,
+      username: user.user_metadata.username,
+      points,
+      amount_usd: amount,
+      wallet,
+      image_url: imageUrl,
+      status: "pending",
+    });
+
+    if (!dbError) {
+      await fetch("https://formsubmit.co/ajax/loops4aiden@gmail.com", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          name: user.user_metadata.username,
+          message: `New payout request:\nPoints: ${points}\nUSD: $${amount}\nWallet: ${wallet}`,
+        }),
+      });
+
+      // Update user's point balance
+      await supabase
+        .from("UserPoints")
+        .update({ points: userPoints - points })
+        .eq("user_id", user.id);
+    }
+
+    setLoading(false);
+    alert("Request submitted successfully.");
+    fetchUserPoints();
+  };
+
+  const updateStatus = async (id: number, status: string) => {
+    await supabase.from("PayoutRequests").update({ status }).eq("id", id);
+    fetchRequests();
+  };
+
+  const filteredRequests = filter === "all" ? requests : requests.filter((req) => req.status === filter);
+  const totalUSD = filteredRequests.reduce((sum, req) => sum + req.amount_usd, 0);
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <Card>
+        <CardContent className="space-y-4">
+          <h2 className="text-xl font-bold">Request a Payout</h2>
+          <p className="text-sm">Your Available Points: {userPoints}</p>
+          <Input
+            type="number"
+            placeholder="Points Earned"
+            value={points}
+            onChange={(e) => setPoints(Number(e.target.value))}
+          />
+          <Input
+            type="number"
+            placeholder="Amount to Redeem (USD)"
+            value={amount}
+            onChange={(e) => setAmount(Number(e.target.value))}
+          />
+          <Input
+            type="text"
+            placeholder="Solana Wallet Address"
+            value={wallet}
+            onChange={(e) => setWallet(e.target.value)}
+          />
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files?.[0] || null)}
+          />
+          <Button onClick={handleSubmit} disabled={loading}>
+            {loading ? "Submitting..." : "Submit Payout Request"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {isAdmin && (
+        <Card>
+          <CardContent className="space-y-4">
+            <h2 className="text-xl font-bold">Admin Dashboard: Payout Requests</h2>
+            <div className="flex gap-4 items-center">
+              <label>Status Filter:</label>
+              <select
+                className="border px-2 py-1 rounded"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="denied">Denied</option>
+              </select>
+              <p className="ml-auto font-semibold">Total USD: ${totalUSD.toFixed(2)}</p>
+            </div>
+            {filteredRequests.map((req) => (
+              <div key={req.id} className="border rounded p-4 shadow space-y-2">
+                <p><strong>User:</strong> {req.username}</p>
+                <p><strong>Points:</strong> {req.points}</p>
+                <p><strong>USD:</strong> ${req.amount_usd}</p>
+                <p><strong>Wallet:</strong> {req.wallet}</p>
+                {req.image_url && (
+                  <img src={req.image_url} alt="verification" className="w-32 mt-2" />
+                )}
+                <p><strong>Status:</strong> {req.status}</p>
+                <div className="flex gap-2">
+                  <Button onClick={() => updateStatus(req.id, "approved")} variant="default">Approve</Button>
+                  <Button onClick={() => updateStatus(req.id, "denied")} variant="destructive">Deny</Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

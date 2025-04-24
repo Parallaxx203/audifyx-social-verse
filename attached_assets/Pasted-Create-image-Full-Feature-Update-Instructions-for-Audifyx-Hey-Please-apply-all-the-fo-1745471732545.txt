@@ -1,0 +1,61 @@
+Create image 
+
+**📢 Full Feature Update Instructions for Audifyx**
+
+Hey! Please apply all the following changes and additions to the Audifyx project:
+
+---
+
+### ✅ **Core Fixes & Updates:**
+1. **Home Dashboard:**
+   - Make it more social. Show posts from followed users and trending creators.
+   - Add support for liking, commenting, and reposting posts.
+
+2. **Discover Tab:**
+   - Improve layout and flow. Include trending music, top creators, and suggested users.
+
+3. **Livestream Tab:**
+   - Remove all dummy/fake data.
+   - Only display currently live creators (no placeholders).
+
+4. **Profiles:**
+   - Enable viewing other users' profiles and following them.
+   - Profiles must be publicly clickable from posts, messages, and livestreams.
+
+5. **Messaging & Calling:**
+   - Add a user list to select people to message or call.
+   - Allow direct access to someone's profile from within a message or call.
+
+6. **Bottom Navigation - Profile Tab:**
+   - Ensure it routes to the logged-in user’s profile.
+
+7. **Creator & Brand Hub Buttons:**
+   - These must properly link to the full dashboard pages for Creator Hub and Brand Hub.
+
+---
+
+### 💰 **Points + Payout System:**
+- Implemented a **UserPoints** database table.
+- Users can:
+  - See their point balance
+  - Request payouts with an image, USD amount, and Solana wallet
+  - Auto-decrease point balance after submitting a payout
+  - Receive email notification to `loops4aiden@gmail.com` on every request
+- Admin dashboard added for viewing, filtering, and managing all payout requests.
+
+---
+
+### 🌈 **Design/UI:**
+- Overhaul the entire design to match **Instagram's modern look**:
+  - Gradient navigation bar and story-style avatars
+  - Polished feed UI for posts and comments
+  - Light mode with Instagram color themes
+
+---
+
+### 💡 **Extra Recommendations to Add:**
+- Add **Dashboard Hub**: single-entry point for navigating Creator, Brand, and Earnings areas.
+- Add **point-to-USD converter** based on fixed rate (e.g., 100 points = $1).
+- Add **point transaction history** for users.
+- Add **admin manual point adjustment tool**.
+
