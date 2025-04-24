@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Pencil } from "lucide-react";
+import { Pencil, Award } from "lucide-react";
+import { usePoints } from "@/hooks/usePoints";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProfileHeaderProps {
   isOwnProfile?: boolean;
 }
 
 export function ProfileHeader({ isOwnProfile = true }: ProfileHeaderProps) {
+  const { user } = useAuth();
+  const { totalPoints, loading: pointsLoading } = usePoints();
   const [userData, setUserData] = useState({
     username: "",
     followers: 0,
@@ -17,8 +21,6 @@ export function ProfileHeader({ isOwnProfile = true }: ProfileHeaderProps) {
     bannerImage: "",
     accountType: "listener",
   });
-
-  const [totalPoints, setTotalPoints] = useState(0); // Added state for total points
 
   const { username } = useParams();
 
@@ -120,9 +122,10 @@ export function ProfileHeader({ isOwnProfile = true }: ProfileHeaderProps) {
               <div>
                 <h1 className="text-2xl font-bold">{userData.username}</h1>
                 <div className="flex items-center gap-4 text-sm text-gray-400">
-                  <div className="px-4 py-2 bg-audifyx-purple/20 rounded-full">
+                  <div className="px-4 py-2 bg-audifyx-purple/20 rounded-full flex items-center gap-2">
+                    <Award className="w-4 h-4 text-audifyx-purple" />
                     <span className="font-bold text-audifyx-purple">
-                      {totalPoints} Points
+                      {pointsLoading ? "..." : totalPoints} Points
                     </span>
                   </div>
                   <span>{userData.followers} Followers</span>
