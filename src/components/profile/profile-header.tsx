@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,16 +18,18 @@ export function ProfileHeader({ isOwnProfile = true }: ProfileHeaderProps) {
     accountType: "listener",
   });
 
+  const [totalPoints, setTotalPoints] = useState(0); // Added state for total points
+
   const { username } = useParams();
-  
+
   useEffect(() => {
     // Get user info from local storage
     const userInfo = localStorage.getItem("audifyx-user");
-    
+
     if (userInfo) {
       const { username, accountType } = JSON.parse(userInfo);
-      
-      // Mock user data
+
+      // Mock user data and points (replace with actual data fetching)
       setUserData({
         username,
         followers: Math.floor(Math.random() * 100),
@@ -38,6 +39,7 @@ export function ProfileHeader({ isOwnProfile = true }: ProfileHeaderProps) {
         bannerImage: "",
         accountType,
       });
+      setTotalPoints(Math.floor(Math.random() * 1000)); // Placeholder for points data
     }
   }, [username]);
 
@@ -118,6 +120,11 @@ export function ProfileHeader({ isOwnProfile = true }: ProfileHeaderProps) {
               <div>
                 <h1 className="text-2xl font-bold">{userData.username}</h1>
                 <div className="flex items-center gap-4 text-sm text-gray-400">
+                  <div className="px-4 py-2 bg-audifyx-purple/20 rounded-full">
+                    <span className="font-bold text-audifyx-purple">
+                      {totalPoints} Points
+                    </span>
+                  </div>
                   <span>{userData.followers} Followers</span>
                   <span>{userData.following} Following</span>
                   <span className="capitalize">{userData.accountType}</span>

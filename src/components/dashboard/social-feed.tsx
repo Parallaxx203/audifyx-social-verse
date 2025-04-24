@@ -11,6 +11,28 @@ export function SocialFeed() {
   const { user } = useAuth();
   const { data: profile } = useProfile(user?.id);
   const [post, setPost] = useState("");
+const { awardPoints } = usePoints();
+
+const handlePost = async () => {
+  if (!post.trim()) return;
+  
+  // Create post logic here
+  
+  await awardPoints('POST_CREATION');
+  setPost("");
+};
+
+const handleLike = async (postId: number) => {
+  // Like post logic here
+  
+  await awardPoints('LIKE', { postId });
+};
+
+const handleComment = async (postId: number) => {
+  // Comment logic here
+  
+  await awardPoints('COMMENT', { postId });
+};
   const [showStories, setShowStories] = useState(true);
   const [posts, setPosts] = useState([
     {

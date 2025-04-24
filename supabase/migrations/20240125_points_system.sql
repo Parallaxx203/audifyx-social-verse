@@ -1,40 +1,34 @@
 
--- Points System Tables
-CREATE TABLE IF NOT EXISTS user_points (
-  id BIGSERIAL PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  points INTEGER DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+CREATE TABLE points_events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  event_type VARCHAR(50) NOT NULL,
+  points INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  metadata JSONB
 );
 
-CREATE TABLE IF NOT EXISTS payout_requests (
-  id BIGSERIAL PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  points_amount INTEGER NOT NULL,
-  usd_amount DECIMAL(10,2) NOT NULL,
-  wallet_address TEXT NOT NULL,
-  verification_image_url TEXT,
-  status TEXT DEFAULT 'pending',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+CREATE TABLE points_balances (
+  user_id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  total_points INTEGER DEFAULT 0,
+  last_updated TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Trigger to update updated_at
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+-- Function to update points balance
+CREATE OR REPLACE FUNCTION update_points_balance()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = TIMEZONE('utc'::text, NOW());
-    RETURN NEW;
+  INSERT INTO points_balances (user_id, total_points)
+  VALUES (NEW.user_id, NEW.points)
+  ON CONFLICT (user_id) DO UPDATE
+  SET total_points = points_balances.total_points + NEW.points,
+      last_updated = NOW();
+  RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_user_points_updated_at
-    BEFORE UPDATE ON user_points
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_payout_requests_updated_at
-    BEFORE UPDATE ON payout_requests
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+-- Trigger to update points balance on new points event
+CREATE TRIGGER points_event_trigger
+AFTER INSERT ON points_events
+FOR EACH ROW
+EXECUTE FUNCTION update_points_balance();
