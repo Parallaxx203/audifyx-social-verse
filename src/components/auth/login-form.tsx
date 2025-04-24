@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -17,24 +18,31 @@ export function LoginForm() {
     e.preventDefault();
     setIsLoading(true);
     
-    // Mock authentication for now
-    // In reality, this would use Supabase Auth
-    setTimeout(() => {
-      localStorage.setItem("audifyx-user", JSON.stringify({
-        id: "user-123",
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        username: email.split("@")[0],
-        accountType: "listener"
-      }));
+        password
+      });
+      
+      if (error) {
+        throw error;
+      }
       
       toast({
         title: "Successfully logged in!",
         description: "Welcome back to Audifyx.",
       });
       
-      setIsLoading(false);
       navigate("/dashboard");
-    }, 1000);
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid email or password.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

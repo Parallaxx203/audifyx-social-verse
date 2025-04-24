@@ -3,37 +3,50 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   Home, Search, Radio, Users, MessageSquare, Phone, 
-  User, Settings, Wallet, Pencil, BarChart, Menu, X 
+  User, Settings, Wallet, Pencil, BarChart, Menu, X, LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 
 interface SidebarProps {
   className?: string;
 }
 
-type UserType = "listener" | "creator" | "brand";
-
 export function Sidebar({ className }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [userType, setUserType] = useState<UserType>("listener");
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { user, signOut } = useAuth();
+  
+  // Get account type from user metadata
+  const accountType = user?.user_metadata?.accountType || "listener";
 
   useEffect(() => {
-    // Get user info from local storage
-    const userInfo = localStorage.getItem("audifyx-user");
-    if (userInfo) {
-      const { accountType } = JSON.parse(userInfo);
-      setUserType(accountType as UserType);
-    }
-
     // Close mobile sidebar when route changes
     setIsOpen(false);
   }, [location.pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account.",
+      });
+      navigate("/");
+    } catch (error) {
+      toast({
+        title: "Logout failed",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const menuItems = [
     { name: "Home", icon: Home, path: "/dashboard" },
@@ -46,19 +59,14 @@ export function Sidebar({ className }: SidebarProps) {
     { name: "Settings", icon: Settings, path: "/settings" },
   ];
 
-  // User-specific items
-  if (userType === "listener") {
+  // User-specific items based on account type
+  if (accountType === "listener") {
     menuItems.push({ name: "Rewards Wallet", icon: Wallet, path: "/rewards" });
-  } else if (userType === "creator") {
+  } else if (accountType === "creator") {
     menuItems.push({ name: "Creator Hub", icon: Pencil, path: "/creator-hub" });
-  } else if (userType === "brand") {
+  } else if (accountType === "brand") {
     menuItems.push({ name: "Brand Hub", icon: BarChart, path: "/brand-hub" });
   }
-
-  const handleLogout = () => {
-    localStorage.removeItem("audifyx-user");
-    navigate("/");
-  };
 
   return (
     <>
@@ -113,6 +121,7 @@ export function Sidebar({ className }: SidebarProps) {
             className="w-full text-gray-300 border-audifyx-purple/30 hover:border-audifyx-purple hover:bg-audifyx-purple/10"
             onClick={handleLogout}
           >
+            <LogOut className="mr-2 h-4 w-4" />
             Logout
           </Button>
         </div>

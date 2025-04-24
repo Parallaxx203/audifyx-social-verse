@@ -1,26 +1,21 @@
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AuthTabs } from "@/components/auth/auth-tabs";
 import { Logo } from "@/components/ui/logo";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user } = useAuth();
   
   useEffect(() => {
-    // Check if user is logged in
-    const userInfo = localStorage.getItem("audifyx-user");
-    if (userInfo) {
-      setIsLoggedIn(true);
+    // Redirect to dashboard if already logged in
+    if (user) {
       navigate("/dashboard");
     }
-  }, [navigate]);
-  
-  if (isLoggedIn) {
-    return null; // Will be redirected by the effect
-  }
+  }, [user, navigate]);
   
   return (
     <div className="min-h-screen bg-gradient-audifyx flex flex-col items-center justify-center p-4 text-white">

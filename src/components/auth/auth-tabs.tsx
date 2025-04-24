@@ -1,12 +1,27 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoginForm } from "@/components/auth/login-form";
 import { SignupForm } from "@/components/auth/signup-form";
+import { useLocation } from "react-router-dom";
 
 export function AuthTabs() {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const [accountType, setAccountType] = useState<"listener" | "creator" | "brand">("listener");
+  
+  useEffect(() => {
+    // Set default tab based on location state if available
+    if (location.state?.defaultTab) {
+      setActiveTab(location.state.defaultTab);
+    }
+    
+    // Set accountType based on location state if available
+    if (location.state?.accountType) {
+      setAccountType(location.state.accountType);
+    }
+  }, [location.state]);
 
   return (
     <Card className="w-full max-w-md border-audifyx-purple/20 bg-gradient-card shadow-lg">
@@ -24,7 +39,7 @@ export function AuthTabs() {
             <LoginForm />
           </TabsContent>
           <TabsContent value="signup" className="mt-0">
-            <SignupForm />
+            <SignupForm defaultAccountType={accountType} />
           </TabsContent>
         </Tabs>
       </CardContent>

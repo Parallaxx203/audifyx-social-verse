@@ -6,14 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 type AccountType = "listener" | "creator" | "brand";
 
-export function SignupForm() {
+interface SignupFormProps {
+  defaultAccountType?: AccountType;
+}
+
+export function SignupForm({ defaultAccountType = "listener" }: SignupFormProps) {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [accountType, setAccountType] = useState<AccountType>("listener");
+  const [accountType, setAccountType] = useState<AccountType>(defaultAccountType);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -22,24 +27,38 @@ export function SignupForm() {
     e.preventDefault();
     setIsLoading(true);
     
-    // Mock registration for now
-    // In reality, this would use Supabase Auth
-    setTimeout(() => {
-      localStorage.setItem("audifyx-user", JSON.stringify({
-        id: "user-" + Math.floor(Math.random() * 10000),
+    try {
+      // Register user with Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
         email,
-        username,
-        accountType
-      }));
+        password,
+        options: {
+          data: {
+            username,
+            accountType
+          }
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
       
       toast({
         title: "Account created!",
         description: "Welcome to Audifyx.",
       });
       
-      setIsLoading(false);
       navigate("/dashboard");
-    }, 1000);
+    } catch (error: any) {
+      toast({
+        title: "Registration failed",
+        description: error.message || "Failed to create account. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
