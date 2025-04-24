@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useCreatorStats } from "@/hooks/useCreatorStats";
 import { Card } from "@/components/ui/card";
@@ -8,7 +7,15 @@ import {
 } from "recharts";
 
 export function CreatorHubStatsPanel({ userId }: { userId: string }) {
-  const { data: stats, isLoading } = useCreatorStats(userId);
+  const { data: stats, isLoading, error } = useCreatorStats(userId);
+
+  if (isLoading) {
+    return <div className="p-4">Loading stats...</div>;
+  }
+
+  if (error) {
+    return <div className="p-4 text-red-500">Error loading stats: {error.message}</div>;
+  }
 
   // Mock data for graphs
   const chartData = [

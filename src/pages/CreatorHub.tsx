@@ -21,7 +21,21 @@ export default function CreatorHub() {
 
   const handlePaymentRequest = async () => {
     if (!points || !amount || !screenshotUrl) {
-      toast({ title: "Please fill all fields and upload screenshot" });
+      toast({ 
+        title: "Validation Error",
+        description: "Please fill all fields and upload screenshot"
+      });
+      return;
+    }
+
+    const pointsNum = parseInt(points);
+    const amountNum = parseFloat(amount);
+
+    if (isNaN(pointsNum) || isNaN(amountNum) || pointsNum <= 0 || amountNum <= 0) {
+      toast({ 
+        title: "Invalid Input",
+        description: "Please enter valid numbers for points and amount"
+      });
       return;
     }
 

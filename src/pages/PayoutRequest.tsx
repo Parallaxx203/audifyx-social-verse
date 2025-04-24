@@ -79,18 +79,27 @@ export default function PayoutRequest() {
 
       if (error) throw error;
 
-      // Send email notification
-      await fetch("https://formsubmit.co/ajax/loops4aiden@gmail.com", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          name: user.user_metadata.username,
-          message: `New payout request:\nPoints: ${pointsToRedeem}\nUSD: $${payoutAmount}\nWallet: ${walletAddress}`,
-        }),
-      });
+      try {
+        // Send email notification
+        const emailResponse = await fetch("https://formsubmit.co/ajax/loops4aiden@gmail.com", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            name: user.user_metadata.username,
+            message: `New payout request:\nPoints: ${pointsToRedeem}\nUSD: $${payoutAmount}\nWallet: ${walletAddress}`,
+          }),
+        });
+
+        if (!emailResponse.ok) {
+          throw new Error('Failed to send email notification');
+        }
+      } catch (emailError) {
+        console.error('Email notification error:', emailError);
+        // Continue with the flow even if email fails
+      }
 
       toast({
         title: 'Success',
