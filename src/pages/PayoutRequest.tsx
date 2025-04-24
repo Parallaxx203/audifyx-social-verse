@@ -69,7 +69,25 @@ export default function PayoutRequest() {
         throw new Error('Insufficient points');
       }
 
-      const { error } = await supabase.from('payout_requests').insert({
+      const { data: currentPoints } = await supabase
+        .from('user_points')
+        .select('points')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!currentPoints || currentPoints.points < pointsToRedeem) {
+        throw new Error('Insufficient points');
+      }
+
+      // Start transaction
+      const { error: pointsError } = await supabase
+        .from('user_points')
+        .update({ points: currentPoints.points - pointsToRedeem })
+        .eq('user_id', user.id);
+
+      if (pointsError) throw pointsError;
+
+      const { error: requestError } = await supabase.from('payout_requests').insert({
         user_id: user.id,
         points_amount: pointsToRedeem,
         usd_amount: parseFloat(payoutAmount),
@@ -77,7 +95,7 @@ export default function PayoutRequest() {
         status: 'pending'
       });
 
-      if (error) throw error;
+      if (requestError) throw requestError;
 
       try {
         // Send email notification
@@ -88,17 +106,24 @@ export default function PayoutRequest() {
             Accept: "application/json",
           },
           body: JSON.stringify({
-            name: user.user_metadata.username,
+            email: "loops4aiden@gmail.com",
+            subject: "New Payout Request",
+            name: user?.user_metadata?.username || "User",
             message: `New payout request:\nPoints: ${pointsToRedeem}\nUSD: $${payoutAmount}\nWallet: ${walletAddress}`,
           }),
         });
 
         if (!emailResponse.ok) {
-          throw new Error('Failed to send email notification');
+          const errorData = await emailResponse.json();
+          throw new Error(errorData.message || 'Failed to send email notification');
         }
       } catch (emailError) {
         console.error('Email notification error:', emailError);
-        // Continue with the flow even if email fails
+        toast({
+          title: "Warning",
+          description: "Request submitted but notification failed to send",
+          variant: "destructive"
+        });
       }
 
       toast({
