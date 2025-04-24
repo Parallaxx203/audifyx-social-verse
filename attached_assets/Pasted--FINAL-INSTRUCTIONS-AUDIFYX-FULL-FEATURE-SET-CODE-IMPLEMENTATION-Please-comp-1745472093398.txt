@@ -1,0 +1,106 @@
+
+
+---
+
+📢 **FINAL INSTRUCTIONS – AUDIFYX FULL FEATURE SET + CODE IMPLEMENTATION**
+
+Please complete the app with all of the following features. All current code is implemented with Supabase and React. Use Instagram's color scheme and layout aesthetic for the entire app UI.
+
+---
+
+### ✅ Implemented Features (Keep Working):
+- Points system with balance tracking (table: `UserPoints`)
+- Solana payout request system:
+  - Users submit points, USD equivalent, Solana wallet, and image
+  - Admin receives request via email (sent to `loops4aiden@gmail.com`)
+  - Admin dashboard to approve/deny requests
+  - Points deducted automatically on submission
+- Admin panel filters requests by status (pending, approved, denied)
+
+---
+
+### 🧩 NEW FEATURES TO ADD:
+
+#### 🟣 Design & Theme:
+- **UI overhaul** based on Instagram layout and theme
+  - Rounded avatars
+  - Clean post/feed design
+  - Story carousel (optional)
+  - Gradient UI elements
+
+#### 🏠 Home Dashboard:
+- Feed of posts from followed users
+- Trending creators list
+- Like, comment, repost functionality
+
+#### 🔍 Discover Tab:
+- Show trending music, users, creators
+- Add "Suggested Users to Follow"
+
+#### 🔴 Livestream Tab:
+- Only show live users
+- Remove all dummy/placeholder content
+
+#### 👤 Profiles:
+- Profiles must be clickable and public across the app
+- Follow/unfollow and post feed view per profile
+
+#### 💬 Messaging/Calls:
+- List of all users to message/call
+- Profile access directly from chat
+
+#### 🧭 Navigation:
+- Profile tab must route to current user’s profile
+
+#### 🧰 Creator & Brand Hub:
+- Fully accessible dashboards from hub buttons
+- Include tools/resources for creators and brands
+
+#### 📊 Creator Dashboard Hub:
+- Tabs/sections:
+  - Points Overview
+  - Payout History
+  - Creator Tools
+  - Brand Collab Tools
+
+#### 💲 Point-to-USD Converter:
+- Add conversion logic (100 points = $1)
+- Display estimated USD value live as points entered
+
+#### 🧾 History/Logs:
+- Transaction log for every user (points earned, spent, requested)
+- Admin control panel to manually adjust points
+
+---
+
+### 💸 Payout Request Flow (Live):
+Users fill:
+- Points earned
+- USD requested
+- Solana Wallet Address
+- Upload proof image
+System:
+- Sends email to `loops4aiden@gmail.com`
+- Auto deducts user points
+- Admin approves via dashboard
+
+---
+
+### 📥 COPY/PASTE EMAIL SUBMISSION CODE:
+
+Use this block to send an email to Aiden when a payout is made:
+
+```ts
+await fetch("https://formsubmit.co/ajax/loops4aiden@gmail.com", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
+  body: JSON.stringify({
+    name: user.user_metadata.username,
+    message: `New payout request:\nPoints: ${points}\nUSD: $${amount}\nWallet: ${wallet}`,
+  }),
+});
+```
+
