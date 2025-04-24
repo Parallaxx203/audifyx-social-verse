@@ -59,9 +59,10 @@ export default {
 				},
 				audifyx: {
 				  purple: {
-				    DEFAULT: '#9b87f5',
+				    DEFAULT: '#8B5CF6',
 				    dark: '#1A1F2C',
-				    vivid: '#8B5CF6'
+				    vivid: '#9B5DE5',
+            light: '#A78BFA'
 				  },
 				  blue: '#1EAEDB',
 				  green: '#10B981',
