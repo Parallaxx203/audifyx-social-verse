@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,6 +51,10 @@ export function PayoutRequestForm({ userPoints, onSuccess }: PayoutRequestFormPr
         variant: "destructive"
       });
     }
+  };
+
+  const handleUploadComplete = (url: string) => {
+    setImageUrl(url);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -164,9 +167,9 @@ export function PayoutRequestForm({ userPoints, onSuccess }: PayoutRequestFormPr
                   <Upload className="h-10 w-10 text-audifyx-purple/50 mb-2" />
                   <p className="text-center text-gray-400 mb-4">Upload a verification image</p>
                   <MediaUploader
-                    onUploadComplete={(url) => setImageUrl(url)}
+                    onUploadComplete={handleUploadComplete}
                     allowedTypes="both"
-                    userId={(supabase.auth.getUser()).then(res => res.data.user?.id || "")}
+                    userId={(async () => (await supabase.auth.getUser()).data.user?.id || "")()}
                   />
                 </div>
               ) : (

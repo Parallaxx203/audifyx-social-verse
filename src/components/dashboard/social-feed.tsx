@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Heart, MessageCircle, Share2, Music, Image } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
-import { usePoints } from "@/hooks/usePoints";
+import { usePoints } from "@/hooks";
 import { useToast } from "@/components/ui/use-toast";
 
 export function SocialFeed() {
@@ -75,7 +75,7 @@ export function SocialFeed() {
 
   const handleShare = async (postId: string) => {
     try {
-      // Handle share logic here
+      // Handle share logic here - now using SHARE which is properly defined in usePoints.ts
       await awardPoints('SHARE', { postId });
       toast({
         title: "Points awarded!",

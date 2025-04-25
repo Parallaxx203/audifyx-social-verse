@@ -14,7 +14,10 @@ export default function Call() {
   return (
     <div className="container mx-auto p-4 grid grid-cols-12 gap-4 h-[calc(100vh-4rem)]">
       <Card className="col-span-4 p-4">
-        <UserList onSelectUser={setSelectedUser} />
+        <UserList 
+          users={[]} 
+          onUserClick={setSelectedUser}
+        />
       </Card>
       
       <Card className="col-span-8 p-4 flex flex-col items-center justify-center">

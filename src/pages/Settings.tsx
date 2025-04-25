@@ -1,119 +1,91 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MediaUploader } from "@/components/ui/media-uploader";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Settings() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState<any>(null);
   const { toast } = useToast();
-  const [darkMode, setDarkMode] = useState(false);
-  const [notifications, setNotifications] = useState(false);
-  const [twitchUsername, setTwitchUsername] = useState("");
-  const [bio, setBio] = useState("");
-  const [links, setLinks] = useState(["", "", ""]);
-  const [avatar, setAvatar] = useState("");
 
-  const handleSaveProfile = async () => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          bio,
-          links,
-          avatar_url: avatar,
-          twitch_username: twitchUsername
-        })
-        .eq('id', user?.id);
-
-      if (error) throw error;
-      toast({ title: "Profile updated successfully!" });
-    } catch (error) {
-      toast({ title: "Error updating profile", variant: "destructive" });
-    }
-  };
-
-  const handleAvatarUpload = async (file: File) => {
-    const fileExt = file.name.split('.').pop();
-    const filePath = `${user?.id}/avatar.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(filePath, file, { upsert: true });
-
-    if (uploadError) {
-      toast({ title: "Error uploading avatar", variant: "destructive" });
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth');
       return;
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(filePath);
+    fetchProfile();
+  }, [user, navigate]);
 
-    setAvatar(publicUrl);
+  const fetchProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+
+      if (error) throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load profile",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
-    <div className="min-h-screen p-8 bg-gradient-audifyx">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>App Settings</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span>Dark Mode</span>
-              <Switch checked={darkMode} onCheckedChange={setDarkMode} />
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Notifications</span>
-              <Switch checked={notifications} onCheckedChange={setNotifications} />
-            </div>
-          </CardContent>
-        </Card>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Settings</h1>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile Settings</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      {profile ? (
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Avatar>
+              <AvatarImage src={profile?.avatar_url} alt={profile?.username} />
+              <AvatarFallback>{profile?.username?.[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
             <div>
-              <label>Profile Photo</label>
-              <MediaUploader onUpload={handleAvatarUpload} />
+              <Label>Avatar</Label>
+              <MediaUploader 
+                onUploadComplete={(url) => {
+                  // Handle the completed upload with the URL string
+                  console.log("Uploaded file:", url);
+                  // Any other logic to handle the uploaded file
+                }}
+                allowedTypes="image/*"
+                userId={user?.id || ""}
+              />
             </div>
-            <div>
-              <label>Bio</label>
-              <Textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell us about yourself..." />
-            </div>
-            <div>
-              <label>Twitch Username</label>
-              <Input value={twitchUsername} onChange={(e) => setTwitchUsername(e.target.value)} />
-            </div>
-            <div>
-              <label>Links (Max 3)</label>
-              {links.map((link, i) => (
-                <Input
-                  key={i}
-                  value={link}
-                  onChange={(e) => {
-                    const newLinks = [...links];
-                    newLinks[i] = e.target.value;
-                    setLinks(newLinks);
-                  }}
-                  placeholder={`Link ${i + 1}`}
-                  className="mb-2"
-                />
-              ))}
-            </div>
-            <Button onClick={handleSaveProfile}>Save Changes</Button>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+
+          <div>
+            <Label htmlFor="username">Username</Label>
+            <Input id="username" value={profile?.username} disabled />
+          </div>
+
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" value={user?.email} disabled />
+          </div>
+
+          <Button onClick={() => navigate('/profile')} className="bg-audifyx-purple hover:bg-audifyx-purple-vivid">
+            View Profile
+          </Button>
+        </div>
+      ) : (
+        <div>Loading...</div>
+      )}
     </div>
   );
 }

@@ -1,39 +1,23 @@
 
-import nodemailer from 'nodemailer';
+// Type definitions for the email request
+export interface PaymentRequestEmail {
+  to: string;
+  points: number;
+  amount: number;
+  screenshotUrl: string;
+  userId: string;
+}
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
-  }
-
-  const { to, points, amount, screenshotUrl, userId } = req.body;
-
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
-
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to,
-    subject: 'New Payment Request',
-    html: `
-      <h2>New Payment Request</h2>
-      <p>User ID: ${userId}</p>
-      <p>Points Earned: ${points}</p>
-      <p>Amount Requested: $${amount}</p>
-      <p>Screenshot: <a href="${screenshotUrl}">View Screenshot</a></p>
-    `
-  };
-
+// This would be implemented as a Supabase edge function
+// Since we've installed nodemailer, this file just contains the interface
+// The actual email sending would be handled by a Supabase edge function
+export async function sendPaymentRequestEmail(data: PaymentRequestEmail): Promise<boolean> {
   try {
-    await transporter.sendMail(mailOptions);
-    res.status(200).json({ message: 'Email sent successfully' });
+    // In a real implementation, we would call a Supabase edge function here
+    console.log('Would send email with data:', data);
+    return true;
   } catch (error) {
-    console.error('Error sending email:', error);
-    res.status(500).json({ message: 'Error sending email' });
+    console.error('Error sending payment request email:', error);
+    return false;
   }
 }

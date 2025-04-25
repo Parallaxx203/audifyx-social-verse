@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sidebar } from "@/components/dashboard/sidebar";
@@ -18,6 +17,22 @@ export default function CreatorHub() {
   const [points, setPoints] = useState("");
   const [amount, setAmount] = useState("");
   const [screenshotUrl, setScreenshotUrl] = useState("");
+  const [paymentRequests, setPaymentRequests] = useState([]);
+
+  const fetchPaymentRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('withdrawals')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('requested_at', { ascending: false });
+      
+      if (error) throw error;
+      setPaymentRequests(data || []);
+    } catch (error) {
+      console.error('Error fetching payment requests:', error);
+    }
+  };
 
   const handlePaymentRequest = async () => {
     if (!points || !amount || !screenshotUrl) {
@@ -40,7 +55,6 @@ export default function CreatorHub() {
     }
 
     try {
-      // Store payment request in database
       const { error } = await supabase
         .from('payment_requests')
         .insert({
@@ -53,7 +67,6 @@ export default function CreatorHub() {
 
       if (error) throw error;
 
-      // Send email notification
       await fetch('/api/send-payment-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

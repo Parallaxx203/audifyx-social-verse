@@ -31,7 +31,7 @@ export function ProfileHeader({ isOwnProfile = true }: ProfileHeaderProps) {
     if (userInfo) {
       const { username, accountType } = JSON.parse(userInfo);
 
-      // Mock user data and points (replace with actual data fetching)
+      // Mock user data (replace with actual data fetching)
       setUserData({
         username,
         followers: Math.floor(Math.random() * 100),
@@ -41,7 +41,6 @@ export function ProfileHeader({ isOwnProfile = true }: ProfileHeaderProps) {
         bannerImage: "",
         accountType,
       });
-      setTotalPoints(Math.floor(Math.random() * 1000)); // Placeholder for points data
     }
   }, [username]);
 
