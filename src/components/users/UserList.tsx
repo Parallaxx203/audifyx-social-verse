@@ -1,15 +1,41 @@
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
-export function UserList({ users = [], onUserClick }: { users: any[], onUserClick?: (u: any) => void }) {
+interface User {
+  id: string;
+  username: string;
+  avatar_url?: string;
+  is_online?: boolean;
+  last_seen?: string;
+  account_type?: string;
+}
+
+interface UserListProps {
+  users: User[];
+  onUserClick?: (user: User) => void;
+}
+
+export function UserList({ users = [], onUserClick }: UserListProps) {
+  const navigate = useNavigate();
+
+  const handleUserClick = (user: User) => {
+    if (onUserClick) {
+      onUserClick(user);
+    } else {
+      // Default behavior: navigate to user profile
+      navigate(`/profile/${user.username}`);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {users.map((user: any) => (
+      {users.map((user) => (
         <div
           key={user.id}
-          className={`flex items-center gap-4 bg-audifyx-purple-dark/60 rounded-lg p-4 cursor-pointer transition hover:bg-audifyx-purple-vivid/10 border border-transparent hover:border-audifyx-purple`}
-          onClick={() => onUserClick?.(user)}
+          className="flex items-center gap-4 bg-audifyx-purple-dark/60 rounded-lg p-4 cursor-pointer transition hover:bg-audifyx-purple-vivid/10 border border-transparent hover:border-audifyx-purple"
+          onClick={() => handleUserClick(user)}
         >
           <Avatar>
             <AvatarImage src={user.avatar_url || undefined} />

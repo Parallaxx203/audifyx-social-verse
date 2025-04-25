@@ -6,11 +6,13 @@ import { User } from "lucide-react";
 import { useOnlineUsers } from "@/hooks/useOnlineUsers";
 import { UserList } from "@/components/users/UserList";
 import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
 
 export default function AllUsers() {
   const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const { data: users, isLoading } = useOnlineUsers(search);
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-gradient-audifyx text-white">
