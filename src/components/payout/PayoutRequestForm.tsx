@@ -53,7 +53,7 @@ export function PayoutRequestForm({ userPoints, onSuccess }: PayoutRequestFormPr
     }
   };
 
-  const handleUploadComplete = (url: string) => {
+  const handleUploadComplete = async (url: string) => {
     setImageUrl(url);
   };
 

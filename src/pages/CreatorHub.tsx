@@ -22,15 +22,24 @@ export default function CreatorHub() {
   const fetchPaymentRequests = async () => {
     try {
       const { data, error } = await supabase
-        .from('withdrawals')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('requested_at', { ascending: false });
+        .from('payment_requests')
+        .select(`
+          *,
+          profiles:user_id (
+            username
+          )
+        `)
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       setPaymentRequests(data || []);
     } catch (error) {
       console.error('Error fetching payment requests:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load payment requests",
+        variant: "destructive"
+      });
     }
   };
 

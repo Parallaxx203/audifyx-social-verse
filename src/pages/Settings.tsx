@@ -59,11 +59,9 @@ export default function Settings() {
               <Label>Avatar</Label>
               <MediaUploader 
                 onUploadComplete={(url) => {
-                  // Handle the completed upload with the URL string
                   console.log("Uploaded file:", url);
-                  // Any other logic to handle the uploaded file
                 }}
-                allowedTypes="image/*"
+                allowedTypes="both"
                 userId={user?.id || ""}
               />
             </div>
