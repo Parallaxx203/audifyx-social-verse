@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,7 +54,7 @@ export function PayoutRequestForm({ userPoints, onSuccess }: PayoutRequestFormPr
     }
   };
 
-  const handleUploadComplete = (url: string) => {
+  const handleUploadComplete = async (url: string) => {
     setImageUrl(url);
   };
 

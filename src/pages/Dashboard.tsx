@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SocialFeed } from "@/components/dashboard/social-feed";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MiniPhone } from "@/components/dashboard/mini-phone";
-import { Chart, LineChart, BarChart } from "@/components/ui/chart";
+import { ActivityChart, EngagementChart, AudienceChart } from "@/components/dashboard/DashboardCharts";
 import { 
   BarChart2, Music, Bell, Calendar, ChevronRight, Heart, 
   MessageSquare, Share2, TrendingUp, Users, Wallet 
@@ -33,7 +32,6 @@ export default function Dashboard() {
   const [campaigns, setCampaigns] = useState([]);
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Get account type from user metadata
   const accountType = user?.user_metadata?.accountType || "listener";
 
   useEffect(() => {
@@ -48,7 +46,6 @@ export default function Dashboard() {
 
   const fetchUserStats = async () => {
     try {
-      // Fetch user points
       const { data: pointsData, error: pointsError } = await supabase
         .from('points')
         .select('points')
@@ -57,7 +54,6 @@ export default function Dashboard() {
 
       if (pointsError) throw pointsError;
 
-      // Fetch follower count
       const { count: followersCount, error: followersError } = await supabase
         .from('follows')
         .select('*', { count: 'exact', head: true })
@@ -65,7 +61,6 @@ export default function Dashboard() {
 
       if (followersError) throw followersError;
 
-      // Fetch tracks count
       const { count: tracksCount, error: tracksError } = await supabase
         .from('tracks')
         .select('*', { count: 'exact', head: true })
@@ -77,7 +72,7 @@ export default function Dashboard() {
         points: pointsData?.points || 0,
         followers: followersCount || 0,
         tracks: tracksCount || 0,
-        earnings: ((pointsData?.points || 0) / 100).toFixed(2), // Assuming 100 points = $1
+        earnings: Number(((pointsData?.points || 0) / 100).toFixed(2)),
       });
 
     } catch (error) {
@@ -95,13 +90,11 @@ export default function Dashboard() {
       let query;
       
       if (accountType === 'brand') {
-        // Brands see their own campaigns
         query = supabase
           .from('campaigns')
           .select('*')
           .eq('brand_id', user?.id);
       } else {
-        // Creators see available campaigns
         query = supabase
           .from('campaigns')
           .select('*')
@@ -142,7 +135,6 @@ export default function Dashboard() {
         <Sidebar />
 
         <main className={`flex-1 ${isMobile ? 'ml-0' : 'ml-64'} p-4 md:p-8`}>
-          {/* Welcome Banner */}
           <Card className="mb-8 border-audifyx-purple/20 bg-gradient-to-br from-audifyx-purple/20 to-audifyx-blue/20 backdrop-blur-sm overflow-hidden animate-fade-in">
             <CardContent className="p-6 md:p-8 flex flex-col md:flex-row justify-between items-center">
               <div className="text-center md:text-left mb-4 md:mb-0">
@@ -180,9 +172,7 @@ export default function Dashboard() {
           </Card>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Content - Stats and Feed */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Tabs for different sections */}
               <Tabs 
                 defaultValue="overview" 
                 value={activeTab} 
@@ -201,7 +191,6 @@ export default function Dashboard() {
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6 animate-fade-in">
-                  {/* Stats Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <Card className="bg-audifyx-purple/20 border-audifyx-purple/20 hover:bg-audifyx-purple/30 transition-all">
                       <CardContent className="p-4 flex flex-col items-center">
@@ -246,7 +235,6 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                  {/* Recent Tracks or Campaigns */}
                   <Card className="bg-audifyx-purple/20 border-audifyx-purple/20">
                     <CardHeader>
                       <CardTitle className="text-xl">
@@ -255,7 +243,6 @@ export default function Dashboard() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      {/* Placeholder for recent items */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         {campaigns.length > 0 ? (
                           campaigns.slice(0, 3).map((campaign: any, i: number) => (
@@ -299,7 +286,6 @@ export default function Dashboard() {
                     </CardFooter>
                   </Card>
 
-                  {/* Social Feed */}
                   <Card className="bg-audifyx-purple/20 border-audifyx-purple/20">
                     <CardHeader>
                       <CardTitle className="text-xl">Social Feed</CardTitle>
@@ -317,14 +303,7 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="h-80">
-                        <BarChart
-                          data={activityData}
-                          index="name"
-                          categories={["value"]}
-                          colors={["#9b87f5"]}
-                          valueFormatter={(value) => `${value}`}
-                          className="h-full"
-                        />
+                        <ActivityChart data={activityData} />
                       </div>
                     </CardContent>
                   </Card>
@@ -344,21 +323,7 @@ export default function Dashboard() {
                             </CardHeader>
                             <CardContent>
                               <div className="h-60">
-                                <LineChart
-                                  data={[
-                                    { date: "Jan", likes: 12, shares: 8 },
-                                    { date: "Feb", likes: 18, shares: 10 },
-                                    { date: "Mar", likes: 24, shares: 14 },
-                                    { date: "Apr", likes: 32, shares: 18 },
-                                    { date: "May", likes: 40, shares: 24 },
-                                    { date: "Jun", likes: 35, shares: 28 },
-                                  ]}
-                                  index="date"
-                                  categories={["likes", "shares"]}
-                                  colors={["#9b87f5", "#7E69AB"]}
-                                  valueFormatter={(value) => `${value}`}
-                                  className="h-full"
-                                />
+                                <EngagementChart />
                               </div>
                             </CardContent>
                           </Card>
@@ -369,21 +334,7 @@ export default function Dashboard() {
                             </CardHeader>
                             <CardContent>
                               <div className="h-60">
-                                <LineChart
-                                  data={[
-                                    { date: "Jan", followers: 120 },
-                                    { date: "Feb", followers: 145 },
-                                    { date: "Mar", followers: 180 },
-                                    { date: "Apr", followers: 220 },
-                                    { date: "May", followers: 275 },
-                                    { date: "Jun", followers: 340 },
-                                  ]}
-                                  index="date"
-                                  categories={["followers"]}
-                                  colors={["#0EA5E9"]}
-                                  valueFormatter={(value) => `${value}`}
-                                  className="h-full"
-                                />
+                                <AudienceChart />
                               </div>
                             </CardContent>
                           </Card>
@@ -446,9 +397,7 @@ export default function Dashboard() {
               </Tabs>
             </div>
 
-            {/* Side Content - Phone Preview, User Stats, etc. */}
             <div className="space-y-6">
-              {/* Mini Phone Preview */}
               <Card className="bg-audifyx-purple/20 border-audifyx-purple/20 overflow-hidden">
                 <CardHeader>
                   <CardTitle className="text-xl">Preview</CardTitle>
@@ -458,7 +407,6 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              {/* Stories/Quick Access */}
               <Card className="bg-audifyx-purple/20 border-audifyx-purple/20">
                 <CardHeader>
                   <CardTitle className="text-xl">Stories</CardTitle>
@@ -479,7 +427,6 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              {/* Notifications */}
               <Card className="bg-audifyx-purple/20 border-audifyx-purple/20">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-xl">Notifications</CardTitle>
@@ -526,7 +473,6 @@ export default function Dashboard() {
                 </CardFooter>
               </Card>
 
-              {/* Upcoming Events */}
               <Card className="bg-audifyx-purple/20 border-audifyx-purple/20">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-xl">Upcoming</CardTitle>
