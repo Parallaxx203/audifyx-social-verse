@@ -10,6 +10,7 @@ import { useTwitchStatus, useTwitchConnection } from "@/hooks/useTwitchConnectio
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
 import { Link } from "react-router-dom";
+import { TwitchEmbed } from "@/components/twitch/TwitchEmbed";
 
 export default function LiveStream() {
   const isMobile = useIsMobile();
@@ -172,24 +173,29 @@ export default function LiveStream() {
             {twitchConnection && user?.accountType === "creator" && (
               <Card className="mb-8 border-audifyx-purple/20 bg-gradient-to-br from-audifyx-purple/20 to-audifyx-blue/20">
                 <CardContent className="p-6">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                      <h2 className="text-xl font-semibold flex items-center gap-2">
-                        Your Twitch Stream
-                      </h2>
-                      <p className="text-gray-300">
-                        Go live on Twitch to share your music and connect with your audience
-                      </p>
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div>
+                        <h2 className="text-xl font-semibold flex items-center gap-2">
+                          Your Twitch Stream
+                        </h2>
+                        <p className="text-gray-300">
+                          Stream your music and connect with your audience
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <a 
+                          href={`https://twitch.tv/${twitchConnection.twitch_username}`} 
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-audifyx-purple hover:underline"
+                        >
+                          twitch.tv/{twitchConnection.twitch_username} <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <a 
-                        href={`https://twitch.tv/${twitchConnection.twitch_username}`} 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-audifyx-purple hover:underline"
-                      >
-                        twitch.tv/{twitchConnection.twitch_username} <ExternalLink className="h-4 w-4" />
-                      </a>
+                    <div className="w-full">
+                      <TwitchEmbed channel={twitchConnection.twitch_username} />
                     </div>
                   </div>
                 </CardContent>
