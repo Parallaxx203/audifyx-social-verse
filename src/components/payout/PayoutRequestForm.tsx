@@ -38,12 +38,13 @@ export function PayoutRequestForm({ userPoints, onSuccess }: PayoutRequestFormPr
         .from('payout-images')
         .getPublicUrl(filePath);
         
-      setImageUrl(data.publicUrl);
-      
-      toast({
-        title: "Success",
-        description: "Verification image uploaded successfully"
-      });
+      if (data && data.publicUrl) {
+        setImageUrl(data.publicUrl);
+        toast({
+          title: "Success",
+          description: "Verification image uploaded successfully"
+        });
+      }
     } catch (error) {
       console.error('Error uploading image:', error);
       toast({
