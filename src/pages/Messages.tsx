@@ -1,21 +1,340 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Search, Users, Plus, Send, Phone, Video } from "lucide-react";
+import { Search, Users, Plus, Send, Phone, Video, UserPlus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks";
+import { CreateGroupChatModal } from "@/components/messages/CreateGroupChatModal";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+interface Message {
+  id: string;
+  content: string;
+  sender_id: string;
+  created_at: string;
+  sender?: {
+    username: string;
+    avatar_url: string;
+  };
+}
+
+interface Chat {
+  id: string;
+  name?: string;
+  type: 'dm' | 'group';
+  last_message?: string;
+  time?: string;
+  user_id?: string;
+  unread_count?: number;
+  username?: string;
+  avatar_url?: string;
+}
 
 export default function Messages() {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
   const [activeChat, setActiveChat] = useState<string | null>(null);
+  const [activeChatType, setActiveChatType] = useState<'dm' | 'group'>('dm');
+  const [activeChatUser, setActiveChatUser] = useState<any>(null);
   const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [chatType, setChatType] = useState<'recent' | 'groups' | 'dms'>('recent');
 
-  // Mock data for chats
-  const chats = [
-    { id: "1", name: "Music Producers", type: "group", lastMessage: "Great beat!", time: "2m ago" },
-    { id: "2", name: "John Doe", type: "dm", lastMessage: "When is your next track dropping?", time: "1h ago" },
-  ];
+  useEffect(() => {
+    if (user) {
+      fetchChats();
+      
+      // Check if there's a user param in the URL
+      const usernameParam = searchParams.get('user');
+      if (usernameParam) {
+        findAndOpenChat(usernameParam);
+      }
+    }
+  }, [user, searchParams]);
+
+  useEffect(() => {
+    if (activeChat) {
+      fetchMessages(activeChat);
+      
+      // Subscribe to new messages
+      const channel = supabase
+        .channel(`messages:${activeChat}`)
+        .on('postgres_changes', 
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${activeChat}` }, 
+          (payload) => {
+            setMessages(prevMessages => [...prevMessages, payload.new as Message]);
+          })
+        .subscribe();
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [activeChat]);
+
+  const fetchChats = async () => {
+    setLoading(true);
+    try {
+      // Fetch direct messages
+      const { data: directChats, error: dmError } = await supabase
+        .from('messages')
+        .select(`
+          distinct on (sender_id, receiver_id) *,
+          sender:sender_id(username, avatar_url),
+          receiver:receiver_id(username, avatar_url)
+        `)
+        .or(`sender_id.eq.${user?.id},receiver_id.eq.${user?.id}`)
+        .order('created_at', { ascending: false });
+      
+      if (dmError) throw dmError;
+      
+      // Fetch group chats
+      const { data: groupChats, error: groupError } = await supabase
+        .from('group_chat_members')
+        .select(`
+          group:group_id(id, name),
+          user_id
+        `)
+        .eq('user_id', user?.id);
+      
+      if (groupError) throw groupError;
+
+      const processedChats = [];
+      
+      // Process direct messages
+      if (directChats) {
+        for (const chat of directChats) {
+          const isReceiver = chat.receiver_id === user?.id;
+          const otherUser = isReceiver ? chat.sender : chat.receiver;
+          
+          processedChats.push({
+            id: isReceiver ? chat.sender_id : chat.receiver_id,
+            type: 'dm',
+            last_message: chat.content,
+            time: new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            username: otherUser.username,
+            avatar_url: otherUser.avatar_url,
+            unread_count: isReceiver && !chat.read ? 1 : 0
+          });
+        }
+      }
+      
+      // Process group chats
+      if (groupChats) {
+        for (const groupChat of groupChats) {
+          if (groupChat.group) {
+            processedChats.push({
+              id: groupChat.group.id,
+              name: groupChat.group.name,
+              type: 'group',
+              last_message: "No messages yet",
+              time: "",
+              unread_count: 0
+            });
+          }
+        }
+      }
+      
+      setChats(processedChats);
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load chat data',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMessages = async (chatId: string) => {
+    try {
+      let query;
+      
+      if (activeChatType === 'dm') {
+        // For direct messages - fetch conversation between two users
+        query = supabase
+          .from('messages')
+          .select(`
+            *,
+            sender:sender_id(username, avatar_url)
+          `)
+          .or(`and(sender_id.eq.${user?.id},receiver_id.eq.${chatId}),and(sender_id.eq.${chatId},receiver_id.eq.${user?.id})`)
+          .order('created_at', { ascending: true });
+      } else {
+        // For group chats - fetch all messages for the group
+        query = supabase
+          .from('group_messages')
+          .select(`
+            *,
+            sender:sender_id(username, avatar_url)
+          `)
+          .eq('group_id', chatId)
+          .order('created_at', { ascending: true });
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      setMessages(data || []);
+      
+      // Mark messages as read if they were sent to the current user
+      if (activeChatType === 'dm') {
+        await supabase
+          .from('messages')
+          .update({ read: true })
+          .eq('sender_id', chatId)
+          .eq('receiver_id', user?.id);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!message.trim() || !activeChat) return;
+    
+    try {
+      let newMessage;
+      
+      if (activeChatType === 'dm') {
+        // Send direct message
+        const { data, error } = await supabase
+          .from('messages')
+          .insert({
+            content: message,
+            sender_id: user?.id,
+            receiver_id: activeChat,
+          })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        newMessage = data;
+      } else {
+        // Send group message
+        const { data, error } = await supabase
+          .from('group_messages')
+          .insert({
+            content: message,
+            sender_id: user?.id,
+            group_id: activeChat,
+          })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        newMessage = data;
+      }
+
+      // Update the messages state
+      const messageWithSender = {
+        ...newMessage,
+        sender: {
+          username: user?.user_metadata?.username || 'You',
+          avatar_url: user?.user_metadata?.avatar_url
+        }
+      };
+      
+      setMessages(prev => [...prev, messageWithSender]);
+      setMessage("");
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send message',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .ilike('username', `%${searchQuery}%`)
+        .neq('id', user?.id)
+        .limit(5);
+
+      if (error) throw error;
+      setSearchResults(data || []);
+    } catch (error) {
+      console.error('Error searching users:', error);
+    }
+  };
+
+  const startChat = async (userId: string, username: string, avatarUrl?: string) => {
+    setActiveChat(userId);
+    setActiveChatType('dm');
+    setActiveChatUser({ username, avatar_url: avatarUrl });
+    setSearchQuery("");
+    setSearchResults([]);
+    
+    // Check if chat already exists in the list
+    const existingChat = chats.find(chat => 
+      chat.type === 'dm' && chat.id === userId
+    );
+    
+    if (!existingChat) {
+      // Add this user to the chats list
+      setChats(prev => [
+        {
+          id: userId,
+          type: 'dm',
+          username,
+          avatar_url: avatarUrl,
+          last_message: 'New conversation',
+          time: 'now',
+          unread_count: 0
+        },
+        ...prev
+      ]);
+    }
+    
+    fetchMessages(userId);
+  };
+
+  const findAndOpenChat = async (username: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .eq('username', username)
+        .single();
+      
+      if (error) throw error;
+      
+      if (data) {
+        startChat(data.id, data.username, data.avatar_url);
+      }
+    } catch (error) {
+      console.error('Error finding user:', error);
+    }
+  };
+
+  const filteredChats = chatType === 'recent' 
+    ? chats 
+    : chatType === 'groups' 
+      ? chats.filter(chat => chat.type === 'group')
+      : chats.filter(chat => chat.type === 'dm');
 
   return (
     <div className="min-h-screen bg-gradient-audifyx text-white">
@@ -23,12 +342,12 @@ export default function Messages() {
         <Sidebar />
         <main className={`flex-1 ${isMobile ? 'ml-0' : 'ml-64'} flex h-screen`}>
           {/* Chat List */}
-          <div className="w-80 border-r border-audifyx-purple/20 p-4">
+          <div className="w-80 border-r border-audifyx-purple/20 p-4 flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Messages</h2>
-              <Button size="icon" variant="ghost">
-                <Plus className="w-5 h-5" />
-              </Button>
+              <div className="flex gap-2">
+                <CreateGroupChatModal onSuccess={fetchChats} />
+              </div>
             </div>
 
             <div className="relative mb-4">
@@ -36,38 +355,114 @@ export default function Messages() {
               <Input 
                 placeholder="Search chats..." 
                 className="pl-9 bg-background/10 border-audifyx-purple/30"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
+              {searchQuery && (
+                <Button 
+                  size="sm" 
+                  variant="ghost"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+                  onClick={handleSearch}
+                >
+                  <Search className="h-3 w-3" />
+                </Button>
+              )}
             </div>
 
-            <div className="space-y-2">
-              {chats.map(chat => (
-                <Card 
-                  key={chat.id}
-                  className={`p-3 cursor-pointer transition-colors ${
-                    activeChat === chat.id 
-                      ? 'bg-audifyx-purple/30' 
-                      : 'bg-background/10 hover:bg-audifyx-purple/20'
-                  }`}
-                  onClick={() => setActiveChat(chat.id)}
-                >
-                  <div className="flex items-center gap-3">
-                    {chat.type === 'group' ? (
-                      <div className="w-12 h-12 rounded-full bg-audifyx-purple/30 flex items-center justify-center">
-                        <Users className="w-6 h-6" />
-                      </div>
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-audifyx-blue/30" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-baseline">
-                        <p className="font-semibold truncate">{chat.name}</p>
-                        <span className="text-xs text-gray-400">{chat.time}</span>
-                      </div>
-                      <p className="text-sm text-gray-400 truncate">{chat.lastMessage}</p>
+            {searchResults.length > 0 && (
+              <div className="border border-audifyx-purple/20 rounded mb-4 bg-audifyx-purple-dark/30 overflow-hidden">
+                <div className="p-2 bg-audifyx-purple/20 text-sm font-medium">Search Results</div>
+                <div className="max-h-40 overflow-y-auto">
+                  {searchResults.map(user => (
+                    <div 
+                      key={user.id} 
+                      className="p-2 hover:bg-audifyx-purple/10 cursor-pointer flex items-center gap-2"
+                      onClick={() => startChat(user.id, user.username, user.avatar_url)}
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.avatar_url} />
+                        <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <span>{user.username}</span>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  ))}
+                </div>
+                <div className="p-2 text-center border-t border-audifyx-purple/20">
+                  <Button 
+                    variant="link" 
+                    className="text-xs text-audifyx-purple"
+                    onClick={() => setSearchResults([])}
+                  >
+                    Clear results
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <Tabs defaultValue="recent" className="w-full" onValueChange={(value) => setChatType(value as any)}>
+              <TabsList className="w-full grid grid-cols-3 bg-audifyx-purple-dark/50">
+                <TabsTrigger value="recent">All</TabsTrigger>
+                <TabsTrigger value="dms">DMs</TabsTrigger>
+                <TabsTrigger value="groups">Groups</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <div className="space-y-2 mt-4 flex-1 overflow-y-auto">
+              {loading ? (
+                <div className="text-center py-8 text-gray-400">Loading chats...</div>
+              ) : filteredChats.length > 0 ? (
+                filteredChats.map(chat => (
+                  <Card 
+                    key={chat.id}
+                    className={`p-3 cursor-pointer transition-colors ${
+                      activeChat === chat.id 
+                        ? 'bg-audifyx-purple/30' 
+                        : 'bg-background/10 hover:bg-audifyx-purple/20'
+                    }`}
+                    onClick={() => {
+                      setActiveChat(chat.id);
+                      setActiveChatType(chat.type);
+                      if (chat.type === 'dm') {
+                        setActiveChatUser({ username: chat.username, avatar_url: chat.avatar_url });
+                      }
+                      fetchMessages(chat.id);
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      {chat.type === 'group' ? (
+                        <div className="w-12 h-12 rounded-full bg-audifyx-purple/30 flex items-center justify-center">
+                          <Users className="w-6 h-6" />
+                        </div>
+                      ) : (
+                        <Avatar className="w-12 h-12">
+                          <AvatarImage src={chat.avatar_url} />
+                          <AvatarFallback>{(chat.username || '?')[0].toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-baseline">
+                          <p className="font-semibold truncate">{chat.name || chat.username}</p>
+                          {chat.time && <span className="text-xs text-gray-400">{chat.time}</span>}
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <p className="text-sm text-gray-400 truncate">{chat.last_message}</p>
+                          {chat.unread_count > 0 && (
+                            <div className="bg-audifyx-purple text-white text-xs rounded-full w-5 h-5 flex items-center justify-center ml-2">
+                              {chat.unread_count}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  No {chatType === 'groups' ? 'group chats' : chatType === 'dms' ? 'direct messages' : 'chats'} found
+                </div>
+              )}
             </div>
           </div>
 
@@ -77,12 +472,33 @@ export default function Messages() {
               {/* Chat Header */}
               <div className="p-4 border-b border-audifyx-purple/20 flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-audifyx-purple/30" />
-                  <h3 className="font-semibold">
-                    {chats.find(c => c.id === activeChat)?.name}
-                  </h3>
+                  {activeChatType === 'group' ? (
+                    <div className="w-10 h-10 rounded-full bg-audifyx-purple/30 flex items-center justify-center">
+                      <Users className="w-5 h-5" />
+                    </div>
+                  ) : (
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={activeChatUser?.avatar_url} />
+                      <AvatarFallback>{(activeChatUser?.username || '?')[0].toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div>
+                    <h3 className="font-semibold">
+                      {activeChatType === 'group' 
+                        ? chats.find(c => c.id === activeChat && c.type === 'group')?.name 
+                        : activeChatUser?.username}
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      {activeChatType === 'group' ? 'Group Chat' : 'Direct Message'}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex gap-2">
+                  {activeChatType === 'group' && (
+                    <Button size="icon" variant="ghost">
+                      <UserPlus className="w-5 h-5" />
+                    </Button>
+                  )}
                   <Button size="icon" variant="ghost">
                     <Phone className="w-5 h-5" />
                   </Button>
@@ -93,8 +509,52 @@ export default function Messages() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 p-4 overflow-y-auto">
-                {/* Mock messages would go here */}
+              <div className="flex-1 p-4 overflow-y-auto bg-audifyx-charcoal/10">
+                {messages.length > 0 ? (
+                  messages.map((msg) => {
+                    const isCurrentUser = msg.sender_id === user?.id;
+                    
+                    return (
+                      <div 
+                        key={msg.id} 
+                        className={`mb-4 flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div className={`flex max-w-[70%] ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                          {!isCurrentUser && (
+                            <Avatar className="h-8 w-8 mr-2">
+                              <AvatarImage src={msg.sender?.avatar_url} />
+                              <AvatarFallback>{(msg.sender?.username || '?')[0].toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                          )}
+                          <div>
+                            {!isCurrentUser && (
+                              <p className="text-xs text-gray-400 mb-1">{msg.sender?.username}</p>
+                            )}
+                            <div 
+                              className={`rounded-lg p-3 ${
+                                isCurrentUser 
+                                  ? 'bg-audifyx-purple text-white' 
+                                  : 'bg-audifyx-purple-dark/50 text-gray-100'
+                              }`}
+                            >
+                              <p>{msg.content}</p>
+                              <p className="text-xs opacity-70 mt-1">
+                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-400">
+                    <div className="text-center">
+                      <p>No messages yet</p>
+                      <p className="text-sm">Send a message to start the conversation</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Message Input */}
@@ -105,8 +565,9 @@ export default function Messages() {
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Type a message..."
                     className="bg-background/10 border-audifyx-purple/30"
+                    onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                   />
-                  <Button>
+                  <Button onClick={sendMessage} disabled={!message.trim()}>
                     <Send className="w-4 h-4" />
                   </Button>
                 </div>
