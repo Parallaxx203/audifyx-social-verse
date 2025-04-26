@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Button } from "@/components/ui/button";
@@ -21,15 +22,17 @@ export default function CreatorHub() {
 
   const fetchPaymentRequests = async () => {
     try {
+      // Since we can't use payment_requests directly, we'll use withdrawals
+      // but adapt the query to work with our UI
       const { data, error } = await supabase
-        .from('payment_requests')
+        .from('withdrawals')
         .select(`
           *,
           profiles:user_id (
             username
           )
         `)
-        .order('created_at', { ascending: false });
+        .order('requested_at', { ascending: false });
       
       if (error) throw error;
       setPaymentRequests(data || []);
@@ -64,14 +67,15 @@ export default function CreatorHub() {
     }
 
     try {
+      // Use withdrawals table instead of payment_requests
       const { error } = await supabase
-        .from('payment_requests')
+        .from('withdrawals')
         .insert({
           user_id: user?.id,
-          points: parseInt(points),
           amount: parseFloat(amount),
-          screenshot_url: screenshotUrl,
-          status: 'pending'
+          status: 'pending',
+          // Store screenshot URL in verification_image field
+          verification_image: screenshotUrl
         });
 
       if (error) throw error;
