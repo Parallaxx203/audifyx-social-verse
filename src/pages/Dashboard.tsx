@@ -15,7 +15,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
   const isMobile = useIsMobile();
@@ -119,6 +119,26 @@ export default function Dashboard() {
     { name: 'Fri', value: 50 },
     { name: 'Sat', value: 90 },
     { name: 'Sun', value: 60 }
+  ];
+
+  const engagementData = [
+    { date: '1/1', likes: 40, shares: 24 },
+    { date: '2/1', likes: 30, shares: 13 },
+    { date: '3/1', likes: 20, shares: 98 },
+    { date: '4/1', likes: 27, shares: 39 },
+    { date: '5/1', likes: 18, shares: 48 },
+    { date: '6/1', likes: 23, shares: 38 },
+    { date: '7/1', likes: 34, shares: 43 }
+  ];
+
+  const audienceData = [
+    { date: '1/1', followers: 400 },
+    { date: '2/1', followers: 430 },
+    { date: '3/1', followers: 448 },
+    { date: '4/1', followers: 470 },
+    { date: '5/1', followers: 540 },
+    { date: '6/1', followers: 580 },
+    { date: '7/1', followers: 690 }
   ];
 
   if (loading) {
@@ -297,16 +317,7 @@ export default function Dashboard() {
                 </TabsContent>
 
                 <TabsContent value="activity" className="animate-fade-in">
-                  <Card className="bg-audifyx-purple/20 border-audifyx-purple/20">
-                    <CardHeader>
-                      <CardTitle className="text-xl">Weekly Activity</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-80">
-                        <ActivityChart data={activityData} />
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <ActivityChart data={activityData} />
                 </TabsContent>
 
                 {accountType === 'creator' && (
@@ -317,27 +328,8 @@ export default function Dashboard() {
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Card className="bg-audifyx-charcoal/40 border-audifyx-purple/10">
-                            <CardHeader>
-                              <CardTitle className="text-base">Engagement</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="h-60">
-                                <EngagementChart />
-                              </div>
-                            </CardContent>
-                          </Card>
-                          
-                          <Card className="bg-audifyx-charcoal/40 border-audifyx-purple/10">
-                            <CardHeader>
-                              <CardTitle className="text-base">Audience Growth</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="h-60">
-                                <AudienceChart />
-                              </div>
-                            </CardContent>
-                          </Card>
+                          <EngagementChart data={engagementData} />
+                          <AudienceChart data={audienceData} />
                         </div>
                       </CardContent>
                     </Card>

@@ -19,11 +19,19 @@ interface FollowerData {
   followers: number;
 }
 
-interface DashboardChartsProps {
-  activityData: ActivityData[];
+interface ActivityChartProps {
+  data: ActivityData[];
 }
 
-export const ActivityChart: React.FC<DashboardChartsProps> = ({ activityData }) => {
+interface EngagementChartProps {
+  data: EngagementData[];
+}
+
+interface AudienceChartProps {
+  data: FollowerData[];
+}
+
+export const ActivityChart: React.FC<ActivityChartProps> = ({ data }) => {
   return (
     <Card className="bg-audifyx-purple/20 border-audifyx-purple/20">
       <CardHeader>
@@ -32,7 +40,7 @@ export const ActivityChart: React.FC<DashboardChartsProps> = ({ activityData }) 
       <CardContent>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={activityData}>
+            <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
               <XAxis dataKey="name" stroke="#9b87f5" />
               <YAxis stroke="#9b87f5" />
@@ -52,7 +60,7 @@ export const ActivityChart: React.FC<DashboardChartsProps> = ({ activityData }) 
   );
 };
 
-export const EngagementChart: React.FC<{ data: EngagementData[] }> = ({ data }) => {
+export const EngagementChart: React.FC<EngagementChartProps> = ({ data }) => {
   return (
     <Card className="bg-audifyx-charcoal/40 border-audifyx-purple/10">
       <CardHeader>
@@ -82,7 +90,7 @@ export const EngagementChart: React.FC<{ data: EngagementData[] }> = ({ data }) 
   );
 };
 
-export const AudienceChart: React.FC<{ data: FollowerData[] }> = ({ data }) => {
+export const AudienceChart: React.FC<AudienceChartProps> = ({ data }) => {
   return (
     <Card className="bg-audifyx-charcoal/40 border-audifyx-purple/10">
       <CardHeader>
