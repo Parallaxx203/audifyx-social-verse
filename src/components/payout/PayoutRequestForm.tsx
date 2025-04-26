@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,20 +53,8 @@ export function PayoutRequestForm({ userPoints, onSuccess }: PayoutRequestFormPr
     }
   };
 
-  // Modified this function to wait for the Promise to resolve before setting the URL
-  const handleUploadComplete = async (url: string) => {
-    try {
-      // Since the MediaUploader component now returns a Promise<string>
-      // we need to handle it accordingly
-      setImageUrl(url);
-    } catch (error) {
-      console.error('Error handling upload:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process uploaded image",
-        variant: "destructive"
-      });
-    }
+  const handleUploadComplete = (url: string) => {
+    setImageUrl(url);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
