@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -8,34 +7,157 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProfile } from "@/hooks/useProfile";
 import { Music, Users, Star, MessageCircle } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth, useToast } from "@/hooks";
 
 export default function ViewProfile() {
   const { username } = useParams();
   const isMobile = useIsMobile();
   const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const { user: currentUser } = useAuth();
+  const { toast } = useToast();
   const { data: profile } = useProfile(user?.id);
+
+  useEffect(() => {
+    fetchUserByUsername();
+    if (user?.id && currentUser?.id) {
+      checkFollowStatus();
+    }
+  }, [username, currentUser?.id, user?.id]);
+
+  const fetchUserByUsername = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('username', username)
+        .single();
+
+      if (error) throw error;
+      setUser(data);
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkFollowStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('follows')
+        .select('*')
+        .eq('follower_id', currentUser?.id)
+        .eq('following_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      setIsFollowing(!!data);
+    } catch (error) {
+      console.error('Error checking follow status:', error);
+    }
+  };
+
+  const handleFollow = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Authentication Required",
+        description: "Please login to follow users",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      if (isFollowing) {
+        const { error } = await supabase
+          .from('follows')
+          .delete()
+          .eq('follower_id', currentUser.id)
+          .eq('following_id', user.id);
+
+        if (error) throw error;
+        setIsFollowing(false);
+        toast({
+          title: "Unfollowed",
+          description: `You are no longer following ${user.username}`
+        });
+      } else {
+        const { error } = await supabase
+          .from('follows')
+          .insert({
+            follower_id: currentUser.id,
+            following_id: user.id
+          });
+
+        if (error) throw error;
+        setIsFollowing(true);
+        toast({
+          title: "Following",
+          description: `You are now following ${user.username}`
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update follow status",
+        variant: "destructive"
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-audifyx text-white flex items-center justify-center">
+        <div className="animate-spin">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-audifyx text-white flex items-center justify-center">
+        <div>User not found</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-audifyx text-white">
       <div className="flex">
         <Sidebar />
         <main className={`flex-1 ${isMobile ? 'ml-0' : 'ml-64'} p-4 md:p-8`}>
-          {/* Profile Header */}
           <div className="mb-8">
             <div className="relative">
               <div className="h-48 bg-gradient-to-r from-audifyx-purple to-audifyx-blue rounded-lg" />
               <div className="absolute -bottom-12 left-8">
-                <div className="w-24 h-24 rounded-full bg-background border-4 border-background" />
+                <Avatar className="w-24 h-24">
+                  <AvatarImage src={user.avatar_url} />
+                  <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+                </Avatar>
               </div>
             </div>
             <div className="mt-16 flex justify-between items-center">
               <div>
-                <h1 className="text-2xl font-bold">@{username}</h1>
-                <p className="text-gray-400">Artist • Producer</p>
+                <h1 className="text-2xl font-bold">@{user.username}</h1>
+                <p className="text-gray-400">{user.bio || "No bio yet"}</p>
               </div>
               <div className="flex gap-2">
-                <Button>Follow</Button>
-                <Button variant="outline">Message</Button>
+                <Button
+                  onClick={handleFollow}
+                  className={isFollowing ? "bg-audifyx-purple/20" : "bg-audifyx-purple"}
+                >
+                  {isFollowing ? "Following" : "Follow"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate(`/messages?user=${user.username}`)}
+                >
+                  Message
+                </Button>
               </div>
             </div>
             <div className="flex gap-6 mt-4">
