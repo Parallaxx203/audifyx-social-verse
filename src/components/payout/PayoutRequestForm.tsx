@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,17 @@ export function PayoutRequestForm({ userPoints, onSuccess }: PayoutRequestFormPr
   const [walletAddress, setWalletAddress] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [verificationImage, setVerificationImage] = useState<File | null>(null);
+  const [userId, setUserId] = useState<string>("");
+  
+  // Fetch user ID on component mount
+  useEffect(() => {
+    async function fetchUserId() {
+      const { data } = await supabase.auth.getUser();
+      setUserId(data.user?.id || "");
+    }
+    
+    fetchUserId();
+  }, []);
 
   const handleImageUpload = async (file: File) => {
     setVerificationImage(file);
@@ -171,10 +182,7 @@ export function PayoutRequestForm({ userPoints, onSuccess }: PayoutRequestFormPr
                   <MediaUploader
                     onUploadComplete={handleUploadComplete}
                     allowedTypes="both"
-                    userId={(async () => {
-                      const { data } = await supabase.auth.getUser();
-                      return data.user?.id || "";
-                    })()}
+                    userId={userId}
                   />
                 </div>
               ) : (
