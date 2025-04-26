@@ -1,5 +1,6 @@
+
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,10 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProfile } from "@/hooks/useProfile";
 import { Music, Users, Star, MessageCircle } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useAuth, useToast } from "@/hooks";
+import { useToast } from "@/hooks";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ViewProfile() {
   const { username } = useParams();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);

@@ -171,7 +171,10 @@ export function PayoutRequestForm({ userPoints, onSuccess }: PayoutRequestFormPr
                   <MediaUploader
                     onUploadComplete={handleUploadComplete}
                     allowedTypes="both"
-                    userId={(async () => (await supabase.auth.getUser()).data.user?.id || "")()}
+                    userId={(async () => {
+                      const { data } = await supabase.auth.getUser();
+                      return data.user?.id || "";
+                    })()}
                   />
                 </div>
               ) : (
