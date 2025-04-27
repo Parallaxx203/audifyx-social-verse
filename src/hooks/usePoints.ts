@@ -1,7 +1,7 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery, useToast } from 'react-query';
 
 export const POINTS_EVENTS = {
   POST_CREATION: 10,
@@ -18,35 +18,23 @@ export type PointEventType = keyof typeof POINTS_EVENTS;
 
 export function usePoints() {
   const { user } = useAuth();
-  const [totalPoints, setTotalPoints] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    if (user) {
-      loadPoints();
-    }
-  }, [user]);
-
-  const loadPoints = async () => {
-    try {
-      setLoading(true);
-      // Use the 'points' table instead of 'points_balances'
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["points", user?.id],
+    queryFn: async () => {
+      if (!user) return { points: 0 };
       const { data, error } = await supabase
         .from('points')
         .select('points')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .single();
 
       if (error) throw error;
-      
-      // Use 'points' property instead of 'total_points'
-      setTotalPoints(data?.points || 0);
-    } catch (error) {
-      console.error('Error loading points:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data || { points: 0 };
+    },
+    enabled: !!user
+  });
 
   const awardPoints = async (eventType: PointEventType, metadata = {}) => {
     try {
@@ -78,5 +66,9 @@ export function usePoints() {
     }
   };
 
-  return { totalPoints, loading, awardPoints };
+  return { 
+    totalPoints: data?.points || 0, 
+    loading, 
+    awardPoints 
+  };
 }

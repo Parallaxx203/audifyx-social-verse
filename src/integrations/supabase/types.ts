@@ -838,6 +838,34 @@ export type Database = {
         Args: { user_id: string; amount: number; reason: string }
         Returns: undefined
       }
+      create_group_chat: {
+        Args: { p_name: string; p_creator_id: string; p_member_ids: string[] }
+        Returns: string
+      }
+      get_user_direct_messages: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          content: string
+          created_at: string
+          sender_id: string
+          receiver_id: string
+          read: boolean
+          sender: Json
+          receiver: Json
+        }[]
+      }
+      get_user_group_chats: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          name: string
+          creator_id: string
+          last_message: string
+          last_message_time: string
+          unread_count: number
+        }[]
+      }
       increment_creator_stat: {
         Args: {
           creator_id: string
