@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sidebar } from "@/components/dashboard/sidebar";
@@ -90,26 +89,16 @@ export default function Messages() {
     setLoading(true);
     try {
       // Fetch direct messages
-      const { data: directChats, error: dmError } = await supabase
-        .from('messages')
-        .select(`
-          distinct on (sender_id, receiver_id) *,
-          sender:sender_id(username, avatar_url),
-          receiver:receiver_id(username, avatar_url)
-        `)
-        .or(`sender_id.eq.${user?.id},receiver_id.eq.${user?.id}`)
-        .order('created_at', { ascending: false });
+      const { data: directChats, error: dmError } = await supabase.rpc('get_user_direct_messages', {
+        p_user_id: user?.id
+      });
       
       if (dmError) throw dmError;
       
       // Fetch group chats
-      const { data: groupChats, error: groupError } = await supabase
-        .from('group_chat_members')
-        .select(`
-          group:group_id(id, name),
-          user_id
-        `)
-        .eq('user_id', user?.id);
+      const { data: groupChats, error: groupError } = await supabase.rpc('get_user_group_chats', {
+        p_user_id: user?.id
+      });
       
       if (groupError) throw groupError;
 
@@ -135,18 +124,14 @@ export default function Messages() {
       
       // Process group chats
       if (groupChats) {
-        for (const groupChat of groupChats) {
-          if (groupChat.group) {
-            processedChats.push({
-              id: groupChat.group.id,
-              name: groupChat.group.name,
-              type: 'group',
-              last_message: "No messages yet",
-              time: "",
-              unread_count: 0
-            });
-          }
-        }
+        processedChats.push(...groupChats.map(chat => ({
+          id: chat.id,
+          name: chat.name,
+          type: 'group',
+          last_message: chat.last_message || "No messages yet",
+          time: chat.last_message_time ? new Date(chat.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "",
+          unread_count: chat.unread_count || 0
+        })));
       }
       
       setChats(processedChats);

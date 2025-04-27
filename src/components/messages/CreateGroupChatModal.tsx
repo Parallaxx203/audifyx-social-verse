@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,6 @@ export function CreateGroupChatModal({ onSuccess }: { onSuccess: () => void }) {
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
     
-    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -35,8 +33,6 @@ export function CreateGroupChatModal({ onSuccess }: { onSuccess: () => void }) {
       setSearchResults(data || []);
     } catch (error) {
       console.error('Error searching users:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -61,35 +57,13 @@ export function CreateGroupChatModal({ onSuccess }: { onSuccess: () => void }) {
 
     setIsLoading(true);
     try {
-      // Create a group chat entry
-      const { data: chatData, error: chatError } = await supabase
-        .from('group_chats')
-        .insert({
-          name: groupName,
-          creator_id: user?.id,
-        })
-        .select('id')
-        .single();
-
-      if (chatError) throw chatError;
-
-      // Add all selected users as members
-      const members = selectedUsers.map(selectedUser => ({
-        group_id: chatData.id,
-        user_id: selectedUser.id
-      }));
-
-      // Add the current user as a member
-      members.push({
-        group_id: chatData.id,
-        user_id: user?.id
+      const { data: chatData, error: chatError } = await supabase.rpc('create_group_chat', {
+        p_name: groupName,
+        p_creator_id: user?.id,
+        p_member_ids: selectedUsers.map(u => u.id)
       });
 
-      const { error: membersError } = await supabase
-        .from('group_chat_members')
-        .insert(members);
-
-      if (membersError) throw membersError;
+      if (chatError) throw chatError;
 
       toast({
         title: "Group Created",

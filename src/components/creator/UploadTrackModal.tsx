@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -44,7 +43,6 @@ export function UploadTrackModal() {
         cover_url: coverUrl || null,
       });
       
-      // Award points for uploading a track
       await awardPoints("POST_CREATION" as PointEventType);
 
       toast({
@@ -52,7 +50,6 @@ export function UploadTrackModal() {
         description: "Your track has been successfully uploaded",
       });
       
-      // Reset form
       setTitle("");
       setDescription("");
       setTrackUrl("");
@@ -155,7 +152,7 @@ export function UploadTrackModal() {
               ) : (
                 <MediaUploader
                   onUploadComplete={(url) => setCoverUrl(url)}
-                  allowedTypes="image"
+                  allowedTypes="both"
                   userId={user?.id || ""}
                 />
               )}
