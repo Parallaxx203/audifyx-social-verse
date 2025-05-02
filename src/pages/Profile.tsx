@@ -49,7 +49,11 @@ export default function Profile() {
           <ProfileHeader isOwnProfile={true} />
           <ProfileMetrics accountType={user?.user_metadata?.accountType || 'listener'} />
           <div className="px-4">
-            <ProfileTabs isOwnProfile={true} accountType={user?.user_metadata?.accountType || 'listener'} />
+            <ProfileTabs 
+              isOwnProfile={true} 
+              accountType={user?.user_metadata?.accountType || 'listener'} 
+              userId={user.id} 
+            />
           </div>
           {profile && (
             <EditProfileModal open={editOpen} onOpenChange={setEditOpen} profile={profile} />

@@ -7,7 +7,7 @@ import { usePoints } from "@/hooks/usePoints";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useFollowUser } from "@/hooks/useFollowUser";
-import { useProfile } from "@/hooks/useProfile";
+import { useProfile, Profile } from "@/hooks/useProfile";
 
 interface ProfileHeaderProps {
   isOwnProfile?: boolean;

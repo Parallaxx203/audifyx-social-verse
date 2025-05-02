@@ -12,12 +12,15 @@ import { useAuth } from "@/contexts/AuthContext";
 interface ProfileTabsProps {
   isOwnProfile?: boolean;
   accountType?: string;
-  userId: string;
+  userId?: string; // Make userId optional
 }
 
 export function ProfileTabs({ isOwnProfile = true, accountType = "listener", userId }: ProfileTabsProps) {
   const [activeTab, setActiveTab] = useState("posts");
   const { user } = useAuth();
+  
+  // When isOwnProfile is true, use the current user's ID
+  const profileUserId = isOwnProfile ? user?.id : userId;
 
   return (
     <Tabs 
@@ -82,7 +85,7 @@ export function ProfileTabs({ isOwnProfile = true, accountType = "listener", use
       </TabsContent>
       
       <TabsContent value="following" className="mt-6">
-        <FollowersPanel userId={userId} />
+        <FollowersPanel userId={profileUserId || ""} />
       </TabsContent>
       
       <TabsContent value="settings" className="mt-6 space-y-6">

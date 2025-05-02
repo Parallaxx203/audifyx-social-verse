@@ -2,6 +2,24 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+// Define the Profile type to match the database structure
+export interface Profile {
+  id: string;
+  username: string;
+  full_name: string;
+  avatar_url: string;
+  banner_url?: string;
+  website: string;
+  bio: string;
+  account_type: string;
+  points: number;
+  created_at: string;
+  updated_at: string;
+  is_online: boolean;
+  last_seen: string;
+  handle: string;
+}
+
 export function useProfile(uid: string | null) {
   return useQuery({
     queryKey: ["profile", uid],
@@ -13,7 +31,7 @@ export function useProfile(uid: string | null) {
         .eq("id", uid)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      return data as Profile | null;
     },
     enabled: !!uid,
   });
@@ -22,7 +40,7 @@ export function useProfile(uid: string | null) {
 export function useUpdateProfile(uid: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (updates: any) => {
+    mutationFn: async (updates: Partial<Profile>) => {
       const { data, error } = await supabase
         .from("profiles")
         .update(updates)
@@ -30,7 +48,7 @@ export function useUpdateProfile(uid: string) {
         .select()
         .maybeSingle();
       if (error) throw error;
-      return data;
+      return data as Profile;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile", uid] });

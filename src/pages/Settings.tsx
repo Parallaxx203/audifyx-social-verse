@@ -12,15 +12,24 @@ import { useToast } from "@/hooks";
 import { RoleSwitcher } from "@/components/profile/RoleSwitcher";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TwitchIntegrationPanel } from "@/components/profile/TwitchIntegrationPanel";
+import { Profile } from "@/hooks/useProfile";
 
 type AccountType = 'listener' | 'creator' | 'brand';
+
+interface ProfileData extends Partial<Profile> {
+  username: string;
+  bio: string;
+  avatar_url: string;
+  banner_url: string;
+  account_type: AccountType;
+}
 
 export default function Settings() {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<ProfileData>({
     username: '',
     bio: '',
     avatar_url: '',
