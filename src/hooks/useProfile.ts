@@ -8,7 +8,7 @@ export interface Profile {
   username: string;
   full_name: string;
   avatar_url: string;
-  banner_url?: string;
+  banner_url: string; // Making sure banner_url is properly defined
   website: string;
   bio: string;
   account_type: string;

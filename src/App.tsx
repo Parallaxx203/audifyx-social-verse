@@ -21,79 +21,70 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import ViewProfile from "@/pages/ViewProfile";
 import TestDB from "@/pages/TestDB";
 import PayoutRequest from "@/pages/PayoutRequest"; // Import the PayoutRequest component
-
+import SocialRoom from "@/pages/SocialRoom"; // Import the new SocialRoom page
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile/:username" element={<ViewProfile />} />
-            <Route path="/discover" element={
-              <ProtectedRoute>
-                <Discover />
-              </ProtectedRoute>
-            } />
-            <Route path="/live-stream" element={
-              <ProtectedRoute>
-                <LiveStream />
-              </ProtectedRoute>
-            } />
-            <Route path="/users" element={
-              <ProtectedRoute>
-                <AllUsers />
-              </ProtectedRoute>
-            } />
-            <Route path="/messages" element={
-              <ProtectedRoute>
-                <Messages />
-              </ProtectedRoute>
-            } />
-            <Route path="/call" element={
-              <ProtectedRoute>
-                <Call />
-              </ProtectedRoute>
-            } />
-            <Route path="/settings" element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            } />
-            <Route path="/creator-hub" element={
-              <ProtectedRoute requiredRole="creator">
-                <CreatorHub />
-              </ProtectedRoute>
-            } />
-            <Route path="/brand-hub" element={
-              <ProtectedRoute requiredRole="brand">
-                <BrandHub />
-              </ProtectedRoute>
-            } />
-            <Route path="/test-db" element={<TestDB />} />
-            <Route path="/payouts" element={<PayoutRequest />} /> {/* Added PayoutRequest route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/creator-hub" element={<CreatorHub />} />
+              <Route path="/live-stream" element={<LiveStream />} />
+              <Route path="/social-room" element={<SocialRoom />} />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile/:username" element={<ViewProfile />} />
+              <Route path="/discover" element={
+                <ProtectedRoute>
+                  <Discover />
+                </ProtectedRoute>
+              } />
+              <Route path="/users" element={
+                <ProtectedRoute>
+                  <AllUsers />
+                </ProtectedRoute>
+              } />
+              <Route path="/messages" element={
+                <ProtectedRoute>
+                  <Messages />
+                </ProtectedRoute>
+              } />
+              <Route path="/call" element={
+                <ProtectedRoute>
+                  <Call />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              } />
+              <Route path="/brand-hub" element={
+                <ProtectedRoute requiredRole="brand">
+                  <BrandHub />
+                </ProtectedRoute>
+              } />
+              <Route path="/test-db" element={<TestDB />} />
+              <Route path="/payouts" element={<PayoutRequest />} /> {/* Added PayoutRequest route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

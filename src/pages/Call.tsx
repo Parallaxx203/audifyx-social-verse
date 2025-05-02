@@ -171,6 +171,24 @@ export default function Call() {
             transform: translateX(-100%);
           }
         }
+        
+        .call-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 1rem;
+        }
+        
+        .button-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 0.5rem;
+        }
+        
+        @media (max-width: 640px) {
+          .button-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
         `}
       </style>
     </div>
