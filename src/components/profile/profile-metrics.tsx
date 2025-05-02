@@ -17,26 +17,11 @@ export function ProfileMetrics({ accountType = "listener" }: ProfileMetricsProps
 
   useEffect(() => {
     // Mock metrics based on account type
-    if (accountType === "listener") {
-      setMetrics([
-        { label: "Post Views", value: Math.floor(Math.random() * 1000), icon: "👁️" },
-        { label: "Followers", value: Math.floor(Math.random() * 100), icon: "👥" },
-        { label: "Points", value: Math.floor(Math.random() * 500), icon: "⭐" },
-        { label: "Rewards", value: Math.floor(Math.random() * 5), icon: "🎁" },
-      ]);
-    } else if (accountType === "creator") {
-      setMetrics([
-        { label: "Post Views", value: Math.floor(Math.random() * 5000), icon: "👁️" },
-        { label: "Music Views", value: Math.floor(Math.random() * 3000), icon: "🎵" },
-        { label: "Followers", value: Math.floor(Math.random() * 500), icon: "👥" },
-        { label: "Points", value: Math.floor(Math.random() * 1000), icon: "⭐" },
+
       ]);
     } else if (accountType === "brand") {
       setMetrics([
-        { label: "Campaign Views", value: Math.floor(Math.random() * 10000), icon: "📢" },
-        { label: "Artists Managed", value: Math.floor(Math.random() * 20), icon: "🎤" },
-        { label: "Followers", value: Math.floor(Math.random() * 200), icon: "👥" },
-        { label: "Rewards Earned", value: Math.floor(Math.random() * 5000), icon: "💰" },
+        
       ]);
     }
   }, [accountType]);
