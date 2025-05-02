@@ -29,22 +29,28 @@ export function useCreatorStats(uid: string | null) {
       if (statsError) throw statsError;
 
       // Get follower count
-      const { count: followersCount } = await supabase
+      const { count: followersCount, error: followerError } = await supabase
         .from("follows")
         .select("*", { count: 'exact', head: true })
         .eq("following_id", uid);
 
+      if (followerError) throw followerError;
+
       // Get following count
-      const { count: followingCount } = await supabase
+      const { count: followingCount, error: followingError } = await supabase
         .from("follows")
         .select("*", { count: 'exact', head: true })
         .eq("follower_id", uid);
 
+      if (followingError) throw followingError;
+
       // Get tracks count
-      const { count: tracksCount } = await supabase
+      const { count: tracksCount, error: tracksError } = await supabase
         .from("tracks")
         .select("*", { count: 'exact', head: true })
         .eq("user_id", uid);
+        
+      if (tracksError) throw tracksError;
 
       return {
         ...(stats || {

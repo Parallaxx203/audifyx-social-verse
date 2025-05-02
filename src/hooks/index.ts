@@ -5,3 +5,4 @@ export { useAuth } from '../contexts/AuthContext';
 export { useProfile } from './useProfile'; 
 export { useCreatorStats } from './useCreatorStats';
 export { useFollowUser } from './useFollowUser';
+export { useGroupChat } from './useGroupChat';

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -35,7 +34,7 @@ export default function ViewProfile() {
   
   useEffect(() => {
     if (profileUser?.id && currentUser?.id) {
-      checkFollowStatus();
+      checkIsFollowing();
       fetchFollowerCount();
       fetchFollowingCount();
       fetchTrackCount();
@@ -101,7 +100,8 @@ export default function ViewProfile() {
     }
   };
 
-  const checkFollowStatus = async () => {
+  const checkIsFollowing = async () => {
+    if (!profileUser?.id || !currentUser?.id) return;
     const status = await checkFollowStatus(profileUser.id);
     setIsFollowing(status);
   };

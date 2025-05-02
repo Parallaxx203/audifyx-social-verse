@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery, useToast } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useToast } from './index';
 
 export const POINTS_EVENTS = {
   POST_CREATION: 10,
@@ -20,7 +22,7 @@ export function usePoints() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data, isLoading: loading } = useQuery({
+  const { data: pointsData, isLoading: loading, refetch } = useQuery({
     queryKey: ["points", user?.id],
     queryFn: async () => {
       if (!user) return { points: 0 };
@@ -58,7 +60,7 @@ export function usePoints() {
         reason: eventType
       });
       
-      await loadPoints();
+      await refetch();
       return true;
     } catch (error) {
       console.error('Error awarding points:', error);
@@ -67,7 +69,7 @@ export function usePoints() {
   };
 
   return { 
-    totalPoints: data?.points || 0, 
+    totalPoints: pointsData?.points || 0, 
     loading, 
     awardPoints 
   };

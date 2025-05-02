@@ -105,25 +105,28 @@ export default function Messages() {
       const processedChats = [];
       
       // Process direct messages
-      if (directChats) {
+      if (directChats && Array.isArray(directChats)) {
         for (const chat of directChats) {
           const isReceiver = chat.receiver_id === user?.id;
-          const otherUser = isReceiver ? chat.sender : chat.receiver;
+          const otherUserObj = isReceiver ? chat.sender : chat.receiver;
+          const otherUser = typeof otherUserObj === 'string' 
+            ? JSON.parse(otherUserObj) 
+            : otherUserObj;
           
           processedChats.push({
             id: isReceiver ? chat.sender_id : chat.receiver_id,
             type: 'dm',
             last_message: chat.content,
             time: new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            username: otherUser.username,
-            avatar_url: otherUser.avatar_url,
+            username: otherUser?.username || 'Unknown',
+            avatar_url: otherUser?.avatar_url || '',
             unread_count: isReceiver && !chat.read ? 1 : 0
           });
         }
       }
       
       // Process group chats
-      if (groupChats) {
+      if (groupChats && Array.isArray(groupChats)) {
         processedChats.push(...groupChats.map(chat => ({
           id: chat.id,
           name: chat.name,

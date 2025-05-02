@@ -18,7 +18,7 @@ export default function CreatorHub() {
   const { user } = useAuth();
   const { data: profile } = useProfile(user?.id);
   const { data: stats } = useCreatorStats(user?.id);
-  const { data: pointsData } = usePoints();
+  const { totalPoints } = usePoints();
   const [activeTab, setActiveTab] = useState("overview");
 
   // Placeholder data for charts
@@ -71,7 +71,7 @@ export default function CreatorHub() {
                   <CardTitle className="text-sm font-medium">Points Balance</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{pointsData?.points || 0}</div>
+                  <div className="text-3xl font-bold">{totalPoints || 0}</div>
                   <p className="text-xs text-gray-400 mt-1">Earn more by engaging with the community</p>
                 </CardContent>
               </Card>
