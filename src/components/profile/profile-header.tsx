@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,9 +19,8 @@ export function ProfileHeader({ isOwnProfile = true, userId }: ProfileHeaderProp
   const { data: profile } = useProfile(userId || user?.id);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const { followUser, unfollowUser, checkFollowStatus } = useFollowUser();
-  const [loading, setLoading] = useState(false);
+  const [isFollowingState, setIsFollowingState] = useState(false);
+  const { followUser, unfollowUser, isFollowing, loading } = useFollowUser();
   
   const profileId = userId || user?.id;
 
@@ -64,29 +62,26 @@ export function ProfileHeader({ isOwnProfile = true, userId }: ProfileHeaderProp
   const checkFollowingStatus = async () => {
     if (!user || !profileId || isOwnProfile) return;
     
-    const isUserFollowing = await checkFollowStatus(profileId);
-    setIsFollowing(isUserFollowing);
+    const isUserFollowing = await isFollowing(profileId);
+    setIsFollowingState(isUserFollowing);
   };
   
   const handleFollowToggle = async () => {
     if (!user || !profileId) return;
     
-    setLoading(true);
     try {
-      if (isFollowing) {
+      if (isFollowingState) {
         await unfollowUser(profileId);
-        setIsFollowing(false);
+        setIsFollowingState(false);
       } else {
         await followUser(profileId);
-        setIsFollowing(true);
+        setIsFollowingState(true);
       }
       
       // Refresh follow counts
       fetchFollowCounts();
     } catch (error) {
       console.error("Error toggling follow status:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -186,11 +181,11 @@ export function ProfileHeader({ isOwnProfile = true, userId }: ProfileHeaderProp
                 </Button>
               ) : (
                 <Button 
-                  className={isFollowing ? "bg-audifyx-charcoal hover:bg-audifyx-charcoal/80" : "bg-audifyx-purple hover:bg-audifyx-purple-vivid"}
+                  className={isFollowingState ? "bg-audifyx-charcoal hover:bg-audifyx-charcoal/80" : "bg-audifyx-purple hover:bg-audifyx-purple-vivid"}
                   onClick={handleFollowToggle}
                   disabled={loading}
                 >
-                  {loading ? "Processing..." : (isFollowing ? "Unfollow" : "Follow")}
+                  {loading ? "Processing..." : (isFollowingState ? "Unfollow" : "Follow")}
                 </Button>
               )}
             </div>

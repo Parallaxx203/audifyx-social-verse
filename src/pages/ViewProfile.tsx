@@ -19,14 +19,14 @@ export default function ViewProfile() {
   const isMobile = useIsMobile();
   const [profileUser, setProfileUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowingState, setIsFollowingState] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [trackCount, setTrackCount] = useState(0);
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const { data: profile } = useProfile(profileUser?.id);
-  const { followUser, unfollowUser, checkFollowStatus, loading: followLoading } = useFollowUser();
+  const { followUser, unfollowUser, isFollowing, loading: followLoading } = useFollowUser();
 
   useEffect(() => {
     fetchUserByUsername();
@@ -102,8 +102,8 @@ export default function ViewProfile() {
 
   const checkIsFollowing = async () => {
     if (!profileUser?.id || !currentUser?.id) return;
-    const status = await checkFollowStatus(profileUser.id);
-    setIsFollowing(status);
+    const status = await isFollowing(profileUser.id);
+    setIsFollowingState(status);
   };
 
   const handleFollow = async () => {
@@ -116,16 +116,16 @@ export default function ViewProfile() {
       return;
     }
 
-    if (isFollowing) {
+    if (isFollowingState) {
       const success = await unfollowUser(profileUser.id);
       if (success) {
-        setIsFollowing(false);
+        setIsFollowingState(false);
         setFollowerCount(prev => Math.max(0, prev - 1));
       }
     } else {
       const success = await followUser(profileUser.id);
       if (success) {
-        setIsFollowing(true);
+        setIsFollowingState(true);
         setFollowerCount(prev => prev + 1);
       }
     }
@@ -171,11 +171,11 @@ export default function ViewProfile() {
                 <Button
                   onClick={handleFollow}
                   disabled={followLoading}
-                  className={isFollowing 
+                  className={isFollowingState 
                     ? "bg-audifyx-purple/20 hover:bg-audifyx-purple/30" 
                     : "bg-audifyx-purple hover:bg-audifyx-purple-vivid"}
                 >
-                  {isFollowing ? "Following" : "Follow"}
+                  {isFollowingState ? "Following" : "Follow"}
                 </Button>
                 <Button 
                   variant="outline" 

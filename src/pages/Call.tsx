@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -157,7 +156,8 @@ export default function Call() {
         </main>
       </div>
       
-      <style jsx>{`
+      <style>
+        {`
         .marquee {
           white-space: nowrap;
           animation: marquee 20s linear infinite;
@@ -171,7 +171,8 @@ export default function Call() {
             transform: translateX(-100%);
           }
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 }

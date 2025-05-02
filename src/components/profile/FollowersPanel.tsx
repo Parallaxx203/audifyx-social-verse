@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +20,7 @@ export function FollowersPanel({ userId }: { userId: string }) {
   const [following, setFollowing] = useState<UserItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
-  const { followUser, unfollowUser, checkFollowStatus } = useFollowUser();
+  const { followUser, unfollowUser, isFollowing } = useFollowUser();
   const [followStatus, setFollowStatus] = useState<Record<string, boolean>>({});
   
   const isOwnProfile = user?.id === userId;

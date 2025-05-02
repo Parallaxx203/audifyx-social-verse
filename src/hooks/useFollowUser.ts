@@ -27,6 +27,9 @@ export function useFollowUser() {
       return false;
     }
   };
+  
+  // Alias for isFollowing to maintain compatibility with existing code
+  const checkFollowStatus = isFollowing;
 
   const followUser = async (userId: string) => {
     if (!user) {
@@ -107,6 +110,7 @@ export function useFollowUser() {
     followUser, 
     unfollowUser, 
     isFollowing,
+    checkFollowStatus, // Adding this alias for compatibility
     loading 
   };
 }

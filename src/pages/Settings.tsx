@@ -20,7 +20,7 @@ interface ProfileData extends Partial<Profile> {
   username: string;
   bio: string;
   avatar_url: string;
-  banner_url: string;
+  banner_url?: string;
   account_type: AccountType;
 }
 

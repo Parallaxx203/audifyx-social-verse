@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -100,7 +99,8 @@ export default function LiveStream() {
         </main>
       </div>
       
-      <style jsx>{`
+      <style>
+        {`
         .marquee {
           white-space: nowrap;
           animation: marquee 20s linear infinite;
@@ -114,7 +114,8 @@ export default function LiveStream() {
             transform: translateX(-100%);
           }
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 }
