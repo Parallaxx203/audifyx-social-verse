@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -20,6 +21,8 @@ export default function CreatorHub() {
   const { data: stats } = useCreatorStats(user?.id);
   const { totalPoints } = usePoints();
   const [activeTab, setActiveTab] = useState("overview");
+  const accountType = user?.user_metadata?.accountType || 'listener';
+  const isAllowedToUpload = accountType === 'creator' || accountType === 'brand';
 
   // Placeholder data for charts
   const weeklyListeners = [120, 220, 180, 250, 210, 290, 310];
@@ -43,7 +46,9 @@ export default function CreatorHub() {
               </div>
               <div className="flex gap-3">
                 <Button variant="outline">Schedule Post</Button>
-                <UploadTrackModal />
+                {isAllowedToUpload && (
+                  <UploadTrackModal />
+                )}
               </div>
             </div>
 

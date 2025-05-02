@@ -31,24 +31,74 @@ export function UploadPostModal() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { awardPoints } = usePoints();
+  const accountType = user?.user_metadata?.accountType || 'listener';
+  const isAllowedToUpload = accountType === 'creator' || accountType === 'brand';
+
+  const validateFileType = (file: File) => {
+    const allowedImageTypes = ['image/jpeg', 'image/png'];
+    const allowedVideoTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo'];
+    const allowedAudioTypes = ['audio/mpeg', 'audio/mp4', 'audio/m4a'];
+    
+    if (mediaType === 'image' && !allowedImageTypes.includes(file.type)) {
+      toast({
+        title: "Invalid image type",
+        description: "Only JPEG and PNG images are allowed.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (mediaType === 'video' && !allowedVideoTypes.includes(file.type)) {
+      toast({
+        title: "Invalid video type",
+        description: "Only MP4, MOV, and AVI videos are allowed.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (mediaType === 'audio' && !allowedAudioTypes.includes(file.type)) {
+      toast({
+        title: "Invalid audio type",
+        description: "Only MP3, MP4, and M4A audio files are allowed.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    return true;
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
+    
     // Determine file type
     if (file.type.startsWith("image/")) {
+      if (!validateFileType(file)) {
+        e.target.value = '';
+        return;
+      }
       setMediaType("image");
     } else if (file.type.startsWith("video/")) {
+      if (!validateFileType(file)) {
+        e.target.value = '';
+        return;
+      }
       setMediaType("video");
     } else if (file.type.startsWith("audio/")) {
+      if (!validateFileType(file)) {
+        e.target.value = '';
+        return;
+      }
       setMediaType("audio");
     } else {
       toast({
         title: "Unsupported file type",
-        description: "Please upload an image, video, or audio file.",
+        description: "Please upload an image (JPEG/PNG), video (MP4), or audio file (MP3/M4A).",
         variant: "destructive",
       });
+      e.target.value = '';
       return;
     }
 
@@ -122,6 +172,10 @@ export function UploadPostModal() {
     }
   };
 
+  if (!isAllowedToUpload) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -182,10 +236,10 @@ export function UploadPostModal() {
                 id="media" 
                 type="file"
                 accept={
-                  mediaType === "image" ? "image/*" : 
-                  mediaType === "video" ? "video/*" : 
-                  mediaType === "audio" ? "audio/*" : 
-                  "image/*,video/*,audio/*"
+                  mediaType === "image" ? "image/jpeg,image/png" : 
+                  mediaType === "video" ? "video/mp4,video/quicktime,video/x-msvideo" : 
+                  mediaType === "audio" ? "audio/mpeg,audio/mp4,audio/m4a" : 
+                  "image/jpeg,image/png,video/mp4,audio/mpeg,audio/mp4,audio/m4a"
                 }
                 onChange={handleFileChange}
               />

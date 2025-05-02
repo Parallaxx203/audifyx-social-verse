@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -21,6 +22,9 @@ export function UploadTrackModal() {
   const { toast } = useToast();
   const { mutateAsync: createTrack } = useCreateTrack();
   const { awardPoints } = usePoints();
+  
+  const accountType = user?.user_metadata?.accountType || 'listener';
+  const isAllowedToUpload = accountType === 'creator' || accountType === 'brand';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +71,10 @@ export function UploadTrackModal() {
     }
   };
 
+  if (!isAllowedToUpload) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -104,7 +112,7 @@ export function UploadTrackModal() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium block">Upload Audio File</label>
+            <label className="text-sm font-medium block">Upload Audio File (MP3, MP4, M4A only)</label>
             <div className="border-2 border-dashed border-audifyx-purple/30 rounded-lg p-4 bg-audifyx-charcoal/30">
               {trackUrl ? (
                 <div className="flex items-center justify-between">
@@ -126,13 +134,14 @@ export function UploadTrackModal() {
                   onUploadComplete={(url) => setTrackUrl(url)}
                   allowedTypes="audio"
                   userId={user?.id || ""}
+                  acceptedFormats=".mp3,.mp4,.m4a"
                 />
               )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium block">Cover Image (Optional)</label>
+            <label className="text-sm font-medium block">Cover Image (JPEG/PNG only)</label>
             <div className="border-2 border-dashed border-audifyx-purple/30 rounded-lg p-4 bg-audifyx-charcoal/30">
               {coverUrl ? (
                 <div className="flex items-center justify-between">
@@ -152,8 +161,9 @@ export function UploadTrackModal() {
               ) : (
                 <MediaUploader
                   onUploadComplete={(url) => setCoverUrl(url)}
-                  allowedTypes="both"
+                  allowedTypes="image"
                   userId={user?.id || ""}
+                  acceptedFormats=".jpg,.jpeg,.png"
                 />
               )}
             </div>

@@ -8,6 +8,7 @@ import { FollowersPanel } from "@/components/profile/FollowersPanel";
 import { TwitchIntegrationPanel } from "@/components/profile/TwitchIntegrationPanel";
 import { UploadPostModal } from "@/components/creator/UploadPostModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { UploadTrackModal } from "@/components/creator/UploadTrackModal";
 
 interface ProfileTabsProps {
   isOwnProfile?: boolean;
@@ -60,12 +61,9 @@ export function ProfileTabs({ isOwnProfile = true, accountType = "listener", use
       </TabsContent>
       
       <TabsContent value="tracks" className="mt-6">
-        {isOwnProfile && accountType === "creator" && (
+        {isOwnProfile && (accountType === "creator" || accountType === "brand") && (
           <div className="mb-4">
-            <Button className="bg-audifyx-purple hover:bg-audifyx-purple-vivid flex items-center gap-2">
-              <Music className="h-4 w-4" />
-              Upload Track
-            </Button>
+            <UploadTrackModal />
           </div>
         )}
         

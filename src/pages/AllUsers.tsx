@@ -6,13 +6,11 @@ import { User } from "lucide-react";
 import { useOnlineUsers } from "@/hooks/useOnlineUsers";
 import { UserList } from "@/components/users/UserList";
 import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
 
 export default function AllUsers() {
   const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const { data: users, isLoading } = useOnlineUsers(search);
-  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-gradient-audifyx text-white">
@@ -24,19 +22,26 @@ export default function AllUsers() {
               <User className="w-6 h-6"/> All Users
             </h1>
 
-            <div className="mb-4 flex gap-2">
+            <div className="mb-4">
               <Input
                 placeholder="Search users by username"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
+                className="bg-audifyx-purple-dark/50 border-audifyx-purple/30"
               />
             </div>
 
-            <div className="bg-audifyx-purple-dark/70 rounded-xl p-8">
+            <div className="bg-audifyx-purple-dark/70 rounded-xl p-4 md:p-8">
               {isLoading ? (
-                <div>Loading...</div>
+                <div className="flex justify-center py-8">
+                  <div className="animate-pulse text-audifyx-purple">Loading users...</div>
+                </div>
+              ) : users && users.length > 0 ? (
+                <UserList users={users} />
               ) : (
-                <UserList users={users || []} />
+                <div className="text-center py-8 text-gray-400">
+                  {search ? `No users found matching "${search}"` : "No users found"}
+                </div>
               )}
             </div>
           </div>
