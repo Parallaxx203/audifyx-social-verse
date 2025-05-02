@@ -13,7 +13,7 @@ import { UploadTrackModal } from "@/components/creator/UploadTrackModal";
 interface ProfileTabsProps {
   isOwnProfile?: boolean;
   accountType?: string;
-  userId?: string; // Make userId optional
+  userId?: string; // Optional userId
 }
 
 export function ProfileTabs({ isOwnProfile = true, accountType = "listener", userId }: ProfileTabsProps) {

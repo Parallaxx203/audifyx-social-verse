@@ -4,18 +4,27 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Phone, PhoneCall, PhoneOff } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "react-router-dom";
+import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, UserPlus } from "lucide-react";
 
 export default function Call() {
   const isMobile = useIsMobile();
-
+  const { user } = useAuth();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const targetUserId = searchParams.get("user");
+  
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOn, setIsVideoOn] = useState(true);
+  
   return (
     <div className="min-h-screen bg-gradient-audifyx text-white">
       <div className="flex">
         <Sidebar />
         <main className={`flex-1 ${isMobile ? 'ml-0' : 'ml-64'} p-6`}>
           <div className="max-w-6xl mx-auto">
-            <h1 className="text-3xl font-bold mb-4">Call Center</h1>
+            <h1 className="text-3xl font-bold mb-4">Call</h1>
             
             {/* Marquee banner */}
             <div className="bg-audifyx-purple/30 rounded-lg p-4 mb-8 overflow-hidden">
@@ -27,80 +36,121 @@ export default function Call() {
               </div>
             </div>
             
-            {/* Mobile phone mockup */}
-            <div className="flex justify-center mb-8">
-              <div className="w-64 h-[500px] bg-audifyx-purple-dark/50 rounded-3xl border-4 border-audifyx-purple/30 overflow-hidden relative">
-                <div className="w-32 h-8 bg-audifyx-purple-dark rounded-b-xl absolute top-0 left-1/2 transform -translate-x-1/2"></div>
-                <div className="p-4 h-full flex flex-col">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>9:41</div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded-full bg-audifyx-purple"></div>
-                      <div className="w-3 h-3 rounded-full bg-audifyx-purple"></div>
-                      <div className="w-3 h-3 rounded-full bg-audifyx-purple"></div>
+            {/* Call interface mockup */}
+            <div className="flex flex-col lg:flex-row gap-6 mb-8">
+              {/* Video preview */}
+              <div className="lg:w-2/3">
+                <Card className="bg-audifyx-purple-dark/70 border-audifyx-purple/30 h-[400px] flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-24 h-24 bg-audifyx-purple/30 rounded-full mx-auto mb-4 flex items-center justify-center">
+                      <Video className="h-12 w-12 text-gray-400" />
                     </div>
+                    <div className="text-xl font-bold">Video Preview</div>
+                    <div className="text-sm text-gray-400 mt-2">Camera access will be available when this feature launches</div>
                   </div>
+                </Card>
+                
+                {/* Call controls */}
+                <div className="flex justify-center gap-4 mt-6">
+                  <Button 
+                    className={`rounded-full w-12 h-12 p-0 ${isMuted ? 'bg-red-500' : 'bg-audifyx-purple'}`}
+                    onClick={() => setIsMuted(!isMuted)}
+                  >
+                    {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+                  </Button>
                   
-                  <div className="flex-grow flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-24 h-24 bg-audifyx-purple/30 rounded-full mx-auto mb-4 flex items-center justify-center">
-                        <PhoneCall size={36} className="text-audifyx-purple-vivid" />
-                      </div>
-                      <div className="text-lg font-bold">Audio & Video Calls</div>
-                      <div className="text-sm text-gray-400 mb-6">Coming Soon</div>
-                      <div className="text-xs text-gray-400">Connect with other creators and fans</div>
-                    </div>
-                  </div>
+                  <Button 
+                    className="rounded-full w-14 h-14 p-0 bg-red-500 hover:bg-red-600"
+                  >
+                    <PhoneOff className="h-7 w-7" />
+                  </Button>
                   
-                  <div className="flex justify-around mt-4 py-4 gap-4">
-                    <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center">
-                      <Phone size={24} />
-                    </div>
-                    <div className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center">
-                      <PhoneOff size={24} />
-                    </div>
-                  </div>
+                  <Button 
+                    className={`rounded-full w-12 h-12 p-0 ${isVideoOn ? 'bg-audifyx-purple' : 'bg-red-500'}`}
+                    onClick={() => setIsVideoOn(!isVideoOn)}
+                  >
+                    {isVideoOn ? <Video className="h-6 w-6" /> : <VideoOff className="h-6 w-6" />}
+                  </Button>
+                  
+                  <Button 
+                    className="rounded-full w-12 h-12 p-0 bg-audifyx-purple"
+                  >
+                    <UserPlus className="h-6 w-6" />
+                  </Button>
                 </div>
+              </div>
+              
+              {/* Call info & participants */}
+              <div className="lg:w-1/3 space-y-4">
+                <Card className="bg-audifyx-purple-dark/50 border-audifyx-purple/30">
+                  <CardHeader>
+                    <CardTitle>Call Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm text-gray-400">Call with</p>
+                        <p className="font-bold">{targetUserId ? `User ID: ${targetUserId}` : 'No user selected'}</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm text-gray-400">Duration</p>
+                        <p className="font-bold">00:00:00</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm text-gray-400">Status</p>
+                        <div className="flex items-center">
+                          <span className="w-2 h-2 rounded-full bg-yellow-400 mr-2"></span>
+                          <span>Waiting for feature release</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-audifyx-purple-dark/50 border-audifyx-purple/30">
+                  <CardHeader>
+                    <CardTitle>Participants</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-2 bg-audifyx-purple/20 rounded-md">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-audifyx-purple/60 rounded-full"></div>
+                          <span>You</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Mic className="h-4 w-4 text-audifyx-purple" />
+                          <Video className="h-4 w-4 text-audifyx-purple" />
+                        </div>
+                      </div>
+                      
+                      {targetUserId && (
+                        <div className="flex items-center justify-between p-2 bg-audifyx-purple/20 rounded-md">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-audifyx-purple/60 rounded-full"></div>
+                            <span>Recipient</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Mic className="h-4 w-4 text-gray-400" />
+                            <Video className="h-4 w-4 text-gray-400" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
             
-            {/* Features preview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <Card className="bg-audifyx-purple-dark/50 border-audifyx-purple/30">
-                <CardHeader>
-                  <CardTitle>HD Audio Calls</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>Crystal-clear audio quality for the ultimate communication experience with fans and collaborators.</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-audifyx-purple-dark/50 border-audifyx-purple/30">
-                <CardHeader>
-                  <CardTitle>Video Conferencing</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>Face-to-face interactions with multiple participants, ideal for virtual meet-and-greets.</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-audifyx-purple-dark/50 border-audifyx-purple/30">
-                <CardHeader>
-                  <CardTitle>Screen Sharing</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>Share your screen during calls to showcase your work, productions, or collaborate on projects.</p>
-                </CardContent>
-              </Card>
-            </div>
-            
-            {/* Footer note */}
+            {/* Feature note */}
             <div className="text-center mt-8 text-gray-400">
-              <p>We're working hard to bring you the best calling experience.</p>
-              <p className="mt-2">Sign up for our newsletter to be notified when this feature launches!</p>
+              <p>Our advanced calling features are currently in development.</p>
+              <p className="mt-2">Stay tuned for high-quality audio/video calls with other Audifyx users!</p>
               
               <Button className="mt-4 bg-audifyx-purple hover:bg-audifyx-purple-vivid">
-                Join Waitlist
+                Join Beta Testing
               </Button>
             </div>
           </div>

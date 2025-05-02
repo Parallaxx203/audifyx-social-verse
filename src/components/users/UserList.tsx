@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,22 @@ export function UserList({ users = [], onUserClick }: UserListProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
-  const { followUser, unfollowUser, isFollowing, followingLoading } = useFollowUser();
+  const { followUser, unfollowUser, isFollowing, loading } = useFollowUser();
+  const [followingStatus, setFollowingStatus] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const fetchFollowingStatus = async () => {
+      if (!currentUser?.id) return;
+      
+      const statusMap: Record<string, boolean> = {};
+      for (const user of users) {
+        statusMap[user.id] = await isFollowing(user.id);
+      }
+      setFollowingStatus(statusMap);
+    };
+    
+    fetchFollowingStatus();
+  }, [users, currentUser?.id, isFollowing]);
 
   const handleUserClick = (user: User) => {
     if (onUserClick) {
@@ -45,11 +60,15 @@ export function UserList({ users = [], onUserClick }: UserListProps) {
         return;
       }
 
-      if (await isFollowing(userId)) {
+      const isCurrentlyFollowing = followingStatus[userId];
+      
+      if (isCurrentlyFollowing) {
         await unfollowUser(userId);
+        setFollowingStatus(prev => ({ ...prev, [userId]: false }));
         toast({ title: "Unfollowed user" });
       } else {
         await followUser(userId);
+        setFollowingStatus(prev => ({ ...prev, [userId]: true }));
         toast({ title: "Now following user" });
       }
     } catch (error) {
@@ -113,10 +132,12 @@ export function UserList({ users = [], onUserClick }: UserListProps) {
               variant="outline" 
               className="flex items-center gap-1" 
               onClick={(e) => handleFollow(e, user.id)}
-              disabled={followingLoading}
+              disabled={loading}
             >
               <UserPlus className="h-4 w-4" />
-              <span className="hidden sm:inline">Follow</span>
+              <span className="hidden sm:inline">
+                {followingStatus[user.id] ? "Unfollow" : "Follow"}
+              </span>
             </Button>
             
             <Button 

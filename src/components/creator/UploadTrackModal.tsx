@@ -134,7 +134,6 @@ export function UploadTrackModal() {
                   onUploadComplete={(url) => setTrackUrl(url)}
                   allowedTypes="audio"
                   userId={user?.id || ""}
-                  acceptedFormats=".mp3,.mp4,.m4a"
                 />
               )}
             </div>
@@ -161,9 +160,8 @@ export function UploadTrackModal() {
               ) : (
                 <MediaUploader
                   onUploadComplete={(url) => setCoverUrl(url)}
-                  allowedTypes="image"
+                  allowedTypes="both"
                   userId={user?.id || ""}
-                  acceptedFormats=".jpg,.jpeg,.png"
                 />
               )}
             </div>

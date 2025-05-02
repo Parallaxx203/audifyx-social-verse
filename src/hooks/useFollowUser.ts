@@ -11,7 +11,7 @@ export function useFollowUser() {
   const { user } = useAuth();
   const { awardPoints } = usePoints();
 
-  const checkFollowStatus = async (userId: string) => {
+  const isFollowing = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('follows')
@@ -106,7 +106,7 @@ export function useFollowUser() {
   return { 
     followUser, 
     unfollowUser, 
-    checkFollowStatus,
+    isFollowing,
     loading 
   };
 }
