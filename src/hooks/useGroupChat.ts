@@ -8,10 +8,14 @@ export function useGroupChat() {
 
   const createGroupChat = async (name: string, memberIds: string[]) => {
     try {
+      // Get the current user id first
+      const { data: userData } = await supabase.auth.getUser();
+      const creatorId = userData.user?.id || '';
+      
       const { data, error } = await supabase
         .rpc('create_group_chat', {
           p_name: name,
-          p_creator_id: supabase.auth.getUser().then(res => res.data.user?.id) || '',
+          p_creator_id: creatorId,
           p_member_ids: memberIds
         });
 

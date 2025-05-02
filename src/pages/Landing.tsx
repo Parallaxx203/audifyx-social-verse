@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { DashboardPreview } from "@/components/landing/dashboard-preview";
 import { InfoTabs } from "@/components/landing/info-tabs";
+import { PlatformPreview } from "@/components/landing/PlatformPreview";
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -87,6 +88,12 @@ export default function Landing() {
             <DashboardPreview />
           </div>
         </div>
+      </section>
+      
+      {/* Platform Preview Section */}
+      <section className="container mx-auto px-4 py-16 bg-audifyx-charcoal/30 rounded-lg">
+        <h2 className="text-3xl font-bold mb-10 text-center">Experience Audifyx</h2>
+        <PlatformPreview />
       </section>
       
       {/* Info Tabs Section */}
