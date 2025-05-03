@@ -33,7 +33,7 @@ export default function LiveStream() {
                   {!twitchConnection ? (
                     <>
                       <p className="mb-6">Connect your Twitch account to start streaming on Audifyx.</p>
-                      <TwitchIntegrationPanel onSuccess={fetchTwitchConnection} />
+                      <TwitchIntegrationPanel />
                     </>
                   ) : (
                     <>
@@ -104,7 +104,8 @@ export default function LiveStream() {
         </main>
       </div>
       
-      <style jsx>{`
+      <style>
+        {`
         .marquee {
           white-space: nowrap;
           animation: marquee 20s linear infinite;
@@ -118,7 +119,8 @@ export default function LiveStream() {
             transform: translateX(-100%);
           }
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 }

@@ -19,7 +19,6 @@ interface ProfileData extends Partial<Profile> {
   username: string;
   bio: string;
   avatar_url: string;
-  banner_url?: string;
   account_type: AccountType;
 }
 
@@ -32,7 +31,6 @@ export default function Settings() {
     username: '',
     bio: '',
     avatar_url: '',
-    banner_url: '',
     account_type: 'listener' as AccountType,
   });
   
@@ -60,7 +58,6 @@ export default function Settings() {
         username: data.username || '',
         bio: data.bio || '',
         avatar_url: data.avatar_url || '',
-        banner_url: data.banner_url || '',
         account_type: (data.account_type as AccountType) || 'listener',
       });
       
@@ -201,11 +198,7 @@ export default function Settings() {
                       <div className="grid gap-4">
                         <Label>Banner Image</Label>
                         <div className="w-full h-32 bg-audifyx-purple-dark border border-audifyx-purple/30 rounded-md flex items-center justify-center overflow-hidden">
-                          {profile.banner_url ? (
-                            <img src={profile.banner_url} alt="Banner" className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-gray-400">No banner image</span>
-                          )}
+                          <span className="text-gray-400">No banner image</span>
                         </div>
                         <Button variant="outline">Upload Banner</Button>
                       </div>

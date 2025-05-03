@@ -160,7 +160,7 @@ export function UploadTrackModal() {
               ) : (
                 <MediaUploader
                   onUploadComplete={(url) => setCoverUrl(url)}
-                  allowedTypes="image"
+                  allowedTypes="both"
                   userId={user?.id || ""}
                 />
               )}
