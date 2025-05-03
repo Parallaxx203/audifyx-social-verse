@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { LayoutDashboard, Music, Video, Compass, Users, Heart, Play, Award } from "lucide-react";
 
 interface ProfileMetricsProps {
   accountType?: string;
@@ -9,7 +10,7 @@ interface ProfileMetricsProps {
 interface MetricItem {
   label: string;
   value: number;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 export function ProfileMetrics({ accountType = "listener" }: ProfileMetricsProps) {
@@ -19,24 +20,24 @@ export function ProfileMetrics({ accountType = "listener" }: ProfileMetricsProps
     // Mock metrics based on account type
     if (accountType === "listener") {
       setMetrics([
-        { label: "Favorites", value: 0, icon: "❤️" },
-        { label: "Playlists", value: 0, icon: "🎵" },
-        { label: "Following", value: 0, icon: "👥" },
-        { label: "Points", value: 0, icon: "🏆" },
+        { label: "Favorites", value: 0, icon: <Heart className="h-5 w-5 text-pink-500" /> },
+        { label: "Playlists", value: 0, icon: <Music className="h-5 w-5 text-blue-500" /> },
+        { label: "Following", value: 0, icon: <Users className="h-5 w-5 text-green-500" /> },
+        { label: "Points", value: 0, icon: <Award className="h-5 w-5 text-yellow-500" /> },
       ]);
     } else if (accountType === "creator") {
       setMetrics([
-        { label: "Tracks", value: 0, icon: "🎵" },
-        { label: "Followers", value: 0, icon: "👥" },
-        { label: "Streams", value: 0, icon: "🎧" },
-        { label: "Points", value: 0, icon: "🏆" },
+        { label: "Tracks", value: 0, icon: <Music className="h-5 w-5 text-purple-500" /> },
+        { label: "Followers", value: 0, icon: <Users className="h-5 w-5 text-blue-500" /> },
+        { label: "Streams", value: 0, icon: <Play className="h-5 w-5 text-green-500" /> },
+        { label: "Points", value: 0, icon: <Award className="h-5 w-5 text-yellow-500" /> },
       ]);
     } else if (accountType === "brand") {
       setMetrics([
-        { label: "Campaigns", value: 0, icon: "📊" },
-        { label: "Creators", value: 0, icon: "👥" },
-        { label: "Audience", value: 0, icon: "👁️" },
-        { label: "ROI", value: 0, icon: "💰" },
+        { label: "Campaigns", value: 0, icon: <LayoutDashboard className="h-5 w-5 text-blue-500" /> },
+        { label: "Creators", value: 0, icon: <Users className="h-5 w-5 text-purple-500" /> },
+        { label: "Audience", value: 0, icon: <Compass className="h-5 w-5 text-green-500" /> },
+        { label: "ROI", value: 0, icon: <Award className="h-5 w-5 text-yellow-500" /> },
       ]);
     }
   }, [accountType]);

@@ -112,7 +112,7 @@ export function UploadTrackModal() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium block">Upload Audio File (MP3, MP4, M4A only)</label>
+            <label className="text-sm font-medium block">Upload Audio File (MP3, WAV, M4A only)</label>
             <div className="border-2 border-dashed border-audifyx-purple/30 rounded-lg p-4 bg-audifyx-charcoal/30">
               {trackUrl ? (
                 <div className="flex items-center justify-between">
@@ -160,7 +160,7 @@ export function UploadTrackModal() {
               ) : (
                 <MediaUploader
                   onUploadComplete={(url) => setCoverUrl(url)}
-                  allowedTypes="both"
+                  allowedTypes="image"
                   userId={user?.id || ""}
                 />
               )}

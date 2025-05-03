@@ -1,14 +1,6 @@
 
 import { useState } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { ModeToggle } from "@/components/mode-toggle";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -18,7 +10,7 @@ import {
   Music,
   Video,
   Compass,
-  MessagesSquare,
+  MessageSquare,
   PhoneCall,
   Settings,
   Users,
@@ -27,6 +19,7 @@ import {
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { ModeToggle } from "./mode-toggle";
 
 interface Route {
   label: string;
@@ -122,7 +115,7 @@ export function Sidebar() {
                   {route.icon === "music" && <Music className="mr-2 h-4 w-4" />}
                   {route.icon === "video" && <Video className="mr-2 h-4 w-4" />}
                   {route.icon === "compass" && <Compass className="mr-2 h-4 w-4" />}
-                  {route.icon === "messages" && <MessagesSquare className="mr-2 h-4 w-4" />}
+                  {route.icon === "messages" && <MessageSquare className="mr-2 h-4 w-4" />}
                   {route.icon === "phone" && <PhoneCall className="mr-2 h-4 w-4" />}
                   {route.icon === "settings" && <Settings className="mr-2 h-4 w-4" />}
                   {route.icon === "users" && <Users className="mr-2 h-4 w-4" />}

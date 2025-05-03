@@ -157,8 +157,7 @@ export default function Call() {
         </main>
       </div>
       
-      <style>
-        {`
+      <style jsx>{`
         .marquee {
           white-space: nowrap;
           animation: marquee 20s linear infinite;
@@ -190,8 +189,7 @@ export default function Call() {
             grid-template-columns: repeat(3, 1fr);
           }
         }
-        `}
-      </style>
+      `}</style>
     </div>
   );
 }
