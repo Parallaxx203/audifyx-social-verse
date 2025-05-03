@@ -1,194 +1,183 @@
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { toast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Music, Video, Upload, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { UploadCloud, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface MediaUploaderProps {
-  onUploadComplete: (url: string, type: "audio" | "video") => void;
-  allowedTypes?: "audio" | "video" | "both";
+  onUploadComplete: (url: string) => void;
+  allowedTypes: "audio" | "video" | "both" | "image";
   userId: string;
 }
 
-export function MediaUploader({ 
-  onUploadComplete, 
-  allowedTypes = "both", 
-  userId 
-}: MediaUploaderProps) {
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
+export function MediaUploader({ onUploadComplete, allowedTypes, userId }: MediaUploaderProps) {
+  const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [mediaType, setMediaType] = useState<"audio" | "video" | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const { toast } = useToast();
 
-  // Determine accepted file types based on props
-  const getAcceptedTypes = () => {
+  const getAcceptString = () => {
     switch (allowedTypes) {
       case "audio":
-        return "audio/mp3,audio/mpeg";
+        return "audio/*";
       case "video":
-        return "video/mp4";
+        return "video/*";
+      case "image":
+        return "image/*";
       case "both":
+        return "audio/*,video/*,image/*";
       default:
-        return "audio/mp3,audio/mpeg,video/mp4";
+        return "";
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      const fileType = selectedFile.type;
+      const file = e.target.files[0];
       
       // Validate file type
-      if (fileType.startsWith("audio/")) {
-        setMediaType("audio");
-      } else if (fileType.startsWith("video/")) {
-        setMediaType("video");
-      } else {
+      if (allowedTypes === "audio" && !file.type.startsWith("audio/")) {
         toast({
           title: "Invalid file type",
-          description: "Please upload an MP3 or MP4 file.",
-          variant: "destructive"
+          description: "Please upload an audio file.",
+          variant: "destructive",
         });
         return;
       }
       
-      // Validate file size (max 50MB)
-      if (selectedFile.size > 50 * 1024 * 1024) {
+      if (allowedTypes === "video" && !file.type.startsWith("video/")) {
         toast({
-          title: "File too large",
-          description: "File size must be less than 50MB",
-          variant: "destructive"
+          title: "Invalid file type",
+          description: "Please upload a video file.",
+          variant: "destructive",
         });
         return;
       }
       
-      setFile(selectedFile);
+      if (allowedTypes === "image" && !file.type.startsWith("image/")) {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload an image file.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSelectedFile(file);
     }
   };
 
-  const uploadFile = async () => {
-    if (!file || !userId || !mediaType) return;
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+
+    setIsUploading(true);
+    setProgress(0);
     
     try {
-      setUploading(true);
-      setProgress(0);
+      // Determine bucket based on file type
+      let bucket = "media";
+      if (selectedFile.type.startsWith("audio/")) {
+        bucket = "audio";
+      } else if (selectedFile.type.startsWith("video/")) {
+        bucket = "videos";
+      } else if (selectedFile.type.startsWith("image/")) {
+        bucket = "images";
+      }
       
-      // Determine bucket based on media type
-      const bucket = mediaType === "audio" ? "audio_files" : "video_files";
-      const filePath = `${userId}/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+      // Generate a unique filename to avoid collisions
+      const timestamp = new Date().getTime();
+      const fileExtension = selectedFile.name.split(".").pop();
+      const fileName = `${userId}_${timestamp}.${fileExtension}`;
       
-      // Upload the file to Supabase storage with progress tracking
+      // Upload file to Supabase Storage
       const { data, error } = await supabase.storage
         .from(bucket)
-        .upload(filePath, file, {
+        .upload(fileName, selectedFile, {
           cacheControl: "3600",
           upsert: false,
+          onUploadProgress: (progress) => {
+            const percent = Math.round((progress.loaded / progress.total) * 100);
+            setProgress(percent);
+          },
         });
       
       if (error) throw error;
       
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
+      // Get public URL for the uploaded file
+      const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(data.path);
+      
+      onUploadComplete(publicUrl);
       
       toast({
         title: "Upload successful",
-        description: `Your ${mediaType} file has been uploaded.`
+        description: "Your media has been uploaded successfully.",
       });
-      
-      onUploadComplete(urlData.publicUrl, mediaType);
-      setFile(null);
-      
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Upload error:", error);
       toast({
         title: "Upload failed",
-        description: error.message || "There was an error uploading your file",
-        variant: "destructive"
+        description: "There was an error uploading your file. Please try again.",
+        variant: "destructive",
       });
-      console.error("Error uploading file:", error);
     } finally {
-      setUploading(false);
+      setIsUploading(false);
+      setSelectedFile(null);
     }
   };
-
+  
   const cancelUpload = () => {
-    setFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    setSelectedFile(null);
   };
-
+  
   return (
-    <div className="w-full space-y-4">
-      {!file ? (
-        <>
-          <div className="flex items-center gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full py-8 border-dashed border-2 flex flex-col gap-2 items-center justify-center bg-background/5"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="h-6 w-6" />
-              <span>
-                {allowedTypes === "both" && "Upload MP3 or MP4"}
-                {allowedTypes === "audio" && "Upload MP3"}
-                {allowedTypes === "video" && "Upload MP4"}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Max file size: 50MB
-              </span>
-            </Button>
-          </div>
-          <Input
-            ref={fileInputRef}
-            type="file"
-            accept={getAcceptedTypes()}
-            onChange={handleFileChange}
-            className="hidden"
-          />
-        </>
+    <div className="bg-audifyx-charcoal/30 rounded-md border border-audifyx-purple/20 p-4">
+      {!selectedFile ? (
+        <div className="flex flex-col items-center justify-center py-4">
+          <UploadCloud className="h-10 w-10 mb-2 text-gray-400" />
+          <p className="text-sm text-gray-400 mb-4">
+            {allowedTypes === "audio" && "Drag and drop audio files, or click to select"}
+            {allowedTypes === "video" && "Drag and drop video files, or click to select"}
+            {allowedTypes === "image" && "Drag and drop image files, or click to select"}
+            {allowedTypes === "both" && "Drag and drop files, or click to select"}
+          </p>
+          <Button
+            variant="outline"
+            className="relative border-audifyx-purple/30 bg-audifyx-charcoal/70"
+            onClick={() => document.getElementById(`file-upload-${userId}`)?.click()}
+          >
+            Select File
+            <input
+              type="file"
+              id={`file-upload-${userId}`}
+              className="sr-only"
+              onChange={handleFileChange}
+              accept={getAcceptString()}
+            />
+          </Button>
+        </div>
       ) : (
-        <div className="bg-background/10 rounded-md p-4 space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {mediaType === "audio" ? (
-                <Music className="h-5 w-5 text-audifyx-purple" />
-              ) : (
-                <Video className="h-5 w-5 text-audifyx-blue" />
-              )}
-              <div className="truncate text-sm">
-                <p className="font-medium truncate">{file.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-              </div>
+            <div className="truncate flex-1">
+              <p className="font-medium truncate">{selectedFile.name}</p>
+              <p className="text-xs text-gray-400">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
             </div>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={cancelUpload}
-              disabled={uploading}
-            >
+            <Button variant="ghost" size="sm" onClick={cancelUpload} className="ml-2 h-8 w-8 p-0">
               <X className="h-4 w-4" />
             </Button>
           </div>
           
-          {uploading ? (
+          {isUploading ? (
             <div className="space-y-2">
-              <Progress value={progress} className="h-2" />
-              <div className="text-xs text-right">{progress}%</div>
+              <Progress value={progress} className="h-2 bg-audifyx-charcoal" />
+              <p className="text-xs text-right">{progress}%</p>
             </div>
           ) : (
-            <Button
-              onClick={uploadFile}
-              className="w-full bg-audifyx-purple hover:bg-audifyx-purple-vivid"
+            <Button 
+              className="w-full bg-audifyx-purple hover:bg-audifyx-purple-vivid" 
+              onClick={handleUpload}
             >
               Upload
             </Button>

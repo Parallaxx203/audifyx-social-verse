@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -186,7 +187,7 @@ export function UploadTrackModal() {
               </div>
             ) : (
               <MediaUploader
-                allowedTypes="image"
+                allowedTypes="both"
                 userId={user?.id || ""}
                 onUploadComplete={handleCoverUpload}
               />

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,7 +31,7 @@ export function SocialFeed() {
   const [post, setPost] = useState("");
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"audio" | "image" | "video" | null>(null);
-  const [showMediaUploader, setShowMediaUploader] = useState<"audio" | "image" | "video" | null>(null);
+  const [showMediaUploader, setShowMediaUploader] = useState<"audio" | "video" | "image" | null>(null);
   const { awardPoints } = usePoints();
   const { toast } = useToast();
   const [isPostingContent, setIsPostingContent] = useState(false);
@@ -264,7 +263,7 @@ export function SocialFeed() {
     setShowMediaUploader(null);
   };
 
-  const handleMediaSelect = (type: "audio" | "image" | "video") => {
+  const handleMediaSelect = (type: "audio" | "video" | "image") => {
     setShowMediaUploader(type);
   };
 
@@ -308,7 +307,7 @@ export function SocialFeed() {
                 </div>
                 <MediaUploader
                   onUploadComplete={handleMediaUpload}
-                  allowedTypes={showMediaUploader === "audio" ? "audio" : showMediaUploader === "video" ? "video" : "image"}
+                  allowedTypes={showMediaUploader}
                   userId={user?.id || ""}
                 />
               </div>
