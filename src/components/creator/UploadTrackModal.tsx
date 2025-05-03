@@ -1,61 +1,68 @@
-
 import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MediaUploader } from "@/components/ui/media-uploader";
-import { useToast } from "@/hooks";
-import { useCreateTrack } from "@/hooks/useDiscoveryFeed";
-import { Music, Upload } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePoints, PointEventType } from "@/hooks/usePoints";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { MediaUploader } from "@/components/ui/media-uploader";
+import { Upload, Music } from "lucide-react";
 
 export function UploadTrackModal() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [genre, setGenre] = useState("");
   const [trackUrl, setTrackUrl] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const { mutateAsync: createTrack } = useCreateTrack();
-  const { awardPoints } = usePoints();
-  
-  const accountType = user?.user_metadata?.accountType || 'listener';
-  const isAllowedToUpload = accountType === 'creator' || accountType === 'brand';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleTrackUpload = (url: string) => {
+    setTrackUrl(url);
+  };
+
+  const handleCoverUpload = (url: string) => {
+    setCoverUrl(url);
+  };
+
+  const handleSubmit = async () => {
     if (!title || !trackUrl) {
       toast({
-        title: "Missing fields",
-        description: "Please provide a title and upload a track file",
+        title: "Missing information",
+        description: "Please provide a title and upload a track.",
         variant: "destructive",
       });
       return;
     }
 
     setIsUploading(true);
+
     try {
-      await createTrack({
-        user_id: user?.id || "",
+      const { data, error } = await supabase.from("tracks").insert({
         title,
-        track_url: trackUrl,
         description,
+        genre,
+        track_url: trackUrl,
         cover_url: coverUrl || null,
+        user_id: user?.id,
       });
-      
-      await awardPoints("POST_CREATION" as PointEventType);
+
+      if (error) throw error;
 
       toast({
-        title: "Track uploaded",
-        description: "Your track has been successfully uploaded",
+        title: "Track uploaded successfully!",
+        description: "Your track has been added to your collection.",
       });
-      
+
+      // Reset form and close dialog
       setTitle("");
       setDescription("");
+      setGenre("");
       setTrackUrl("");
       setCoverUrl("");
       setOpen(false);
@@ -63,7 +70,7 @@ export function UploadTrackModal() {
       console.error("Error uploading track:", error);
       toast({
         title: "Upload failed",
-        description: "There was an error uploading your track",
+        description: "There was an error uploading your track. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -71,120 +78,137 @@ export function UploadTrackModal() {
     }
   };
 
-  if (!isAllowedToUpload) {
-    return null;
-  }
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="bg-audifyx-purple hover:bg-audifyx-purple-vivid">
-          <Upload className="mr-2 h-4 w-4" /> Upload Track
+          <Upload className="mr-2 h-4 w-4" />
+          Upload Track
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] bg-audifyx-purple-dark/90 border-audifyx-purple/30">
+      <DialogContent className="sm:max-w-[500px] bg-audifyx-charcoal border-audifyx-purple/30">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Music className="h-5 w-5" /> Upload New Track
-          </DialogTitle>
+          <DialogTitle>Upload New Track</DialogTitle>
+          <DialogDescription>
+            Share your music with the Audifyx community.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-sm font-medium mb-1 block">Track Title</label>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="title">Track Title</Label>
             <Input
+              id="title"
+              placeholder="Enter track title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter track title"
               className="bg-audifyx-charcoal/50"
-              required
             />
           </div>
-
-          <div>
-            <label className="text-sm font-medium mb-1 block">Description</label>
+          <div className="grid gap-2">
+            <Label htmlFor="description">Description (Optional)</Label>
             <Textarea
+              id="description"
+              placeholder="Tell us about your track"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your track"
               className="bg-audifyx-charcoal/50"
-              rows={3}
             />
           </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium block">Upload Audio File (MP3, WAV, M4A only)</label>
-            <div className="border-2 border-dashed border-audifyx-purple/30 rounded-lg p-4 bg-audifyx-charcoal/30">
-              {trackUrl ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Music className="h-5 w-5 text-audifyx-purple" />
-                    <span className="text-sm">Audio file uploaded</span>
-                  </div>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setTrackUrl("")}
-                  >
-                    Change
-                  </Button>
-                </div>
-              ) : (
-                <MediaUploader
-                  onUploadComplete={(url) => setTrackUrl(url)}
-                  allowedTypes="audio"
-                  userId={user?.id || ""}
-                />
-              )}
-            </div>
+          <div className="grid gap-2">
+            <Label htmlFor="genre">Genre</Label>
+            <Select value={genre} onValueChange={setGenre}>
+              <SelectTrigger className="bg-audifyx-charcoal/50">
+                <SelectValue placeholder="Select genre" />
+              </SelectTrigger>
+              <SelectContent className="bg-audifyx-charcoal border-audifyx-purple/30">
+                <SelectItem value="pop">Pop</SelectItem>
+                <SelectItem value="rock">Rock</SelectItem>
+                <SelectItem value="hip-hop">Hip Hop</SelectItem>
+                <SelectItem value="electronic">Electronic</SelectItem>
+                <SelectItem value="jazz">Jazz</SelectItem>
+                <SelectItem value="classical">Classical</SelectItem>
+                <SelectItem value="r&b">R&B</SelectItem>
+                <SelectItem value="country">Country</SelectItem>
+                <SelectItem value="folk">Folk</SelectItem>
+                <SelectItem value="indie">Indie</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium block">Cover Image (JPEG/PNG only)</label>
-            <div className="border-2 border-dashed border-audifyx-purple/30 rounded-lg p-4 bg-audifyx-charcoal/30">
-              {coverUrl ? (
+          <div className="grid gap-2">
+            <Label>Upload Track (MP3)</Label>
+            {trackUrl ? (
+              <div className="bg-audifyx-purple/10 p-3 rounded-md">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <img src={coverUrl} alt="Cover" className="h-12 w-12 object-cover rounded" />
-                    <span className="text-sm ml-2">Cover image uploaded</span>
+                    <Music className="h-5 w-5 mr-2 text-audifyx-purple" />
+                    <span className="text-sm">Track uploaded successfully</span>
                   </div>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm"
-                    onClick={() => setCoverUrl("")}
+                    onClick={() => setTrackUrl("")}
+                    className="text-gray-400 hover:text-white"
                   >
                     Change
                   </Button>
                 </div>
-              ) : (
-                <MediaUploader
-                  onUploadComplete={(url) => setCoverUrl(url)}
-                  allowedTypes="both"
-                  userId={user?.id || ""}
+                <audio controls className="w-full mt-2">
+                  <source src={trackUrl} type="audio/mpeg" />
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+            ) : (
+              <MediaUploader
+                allowedTypes="audio"
+                userId={user?.id || ""}
+                onUploadComplete={handleTrackUpload}
+              />
+            )}
+          </div>
+          <div className="grid gap-2">
+            <Label>Cover Art (Optional)</Label>
+            {coverUrl ? (
+              <div className="relative aspect-square max-w-[200px] mx-auto">
+                <img
+                  src={coverUrl}
+                  alt="Cover art"
+                  className="w-full h-full object-cover rounded-md"
                 />
-              )}
-            </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCoverUrl("")}
+                  className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 h-8 w-8"
+                >
+                  ✕
+                </Button>
+              </div>
+            ) : (
+              <MediaUploader
+                allowedTypes="image"
+                userId={user?.id || ""}
+                onUploadComplete={handleCoverUpload}
+              />
+            )}
           </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button 
-              type="button" 
-              variant="ghost" 
-              onClick={() => setOpen(false)}
-              className="border-audifyx-purple/30"
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit"
-              disabled={isUploading || !title || !trackUrl}
-              className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
-            >
-              {isUploading ? "Uploading..." : "Upload Track"}
-            </Button>
-          </div>
-        </form>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            className="border-audifyx-purple/30"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
+            disabled={isUploading || !title || !trackUrl}
+          >
+            {isUploading ? "Uploading..." : "Upload Track"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

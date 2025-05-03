@@ -308,7 +308,7 @@ export function SocialFeed() {
                 </div>
                 <MediaUploader
                   onUploadComplete={handleMediaUpload}
-                  allowedTypes={showMediaUploader === "audio" ? "audio" : showMediaUploader === "video" ? "video" : "both"}
+                  allowedTypes={showMediaUploader === "audio" ? "audio" : showMediaUploader === "video" ? "video" : "image"}
                   userId={user?.id || ""}
                 />
               </div>
@@ -385,65 +385,67 @@ export function SocialFeed() {
         <div className="text-center py-8 text-gray-400">No posts yet. Be the first to post!</div>
       ) : (
         posts.map(post => (
-          <Card key={post.id} className="p-4 bg-audifyx-purple/20">
-            <div className="flex items-center gap-3 mb-4">
-              <Avatar className="h-10 w-10">
-                {post.avatar ? (
-                  <AvatarImage src={post.avatar} />
-                ) : (
-                  <AvatarFallback>{post.username[0].toUpperCase()}</AvatarFallback>
-                )}
-              </Avatar>
-              <div>
-                <p className="font-semibold">@{post.username}</p>
-                <p className="text-sm text-gray-400">{post.timestamp}</p>
+          <Card key={post.id} className="overflow-hidden bg-audifyx-purple/20">
+            <div className="p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <Avatar className="h-10 w-10">
+                  {post.avatar ? (
+                    <AvatarImage src={post.avatar} />
+                  ) : (
+                    <AvatarFallback>{post.username[0].toUpperCase()}</AvatarFallback>
+                  )}
+                </Avatar>
+                <div>
+                  <p className="font-semibold">@{post.username}</p>
+                  <p className="text-sm text-gray-400">{post.timestamp}</p>
+                </div>
               </div>
-            </div>
-            
-            <p className="mb-4">{post.content}</p>
-            
-            {post.mediaUrl && post.mediaType === "image" && (
-              <div className="mb-4 rounded-md overflow-hidden">
-                <img src={post.mediaUrl} alt="Post media" className="w-full" />
+              
+              {post.content && <p className="mb-4">{post.content}</p>}
+              
+              {post.mediaUrl && post.mediaType === "image" && (
+                <div className="mb-4 rounded-md overflow-hidden">
+                  <img src={post.mediaUrl} alt="Post media" className="w-full" />
+                </div>
+              )}
+              
+              {post.mediaUrl && post.mediaType === "audio" && (
+                <div className="mb-4 bg-audifyx-purple/10 p-3 rounded-md">
+                  <audio controls className="w-full">
+                    <source src={post.mediaUrl} type="audio/mpeg" />
+                    Your browser does not support the audio element.
+                  </audio>
+                </div>
+              )}
+              
+              {post.mediaUrl && post.mediaType === "video" && (
+                <div className="mb-4 bg-audifyx-purple/10 rounded-md overflow-hidden">
+                  <video controls className="w-full">
+                    <source src={post.mediaUrl} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              )}
+              
+              <div className="flex gap-4">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={post.isLiked ? "text-audifyx-purple" : ""}
+                  onClick={() => handleLike(post.id)}
+                >
+                  <Heart className={`w-4 h-4 mr-2 ${post.isLiked ? 'fill-audifyx-purple' : ''}`} />
+                  {post.likes}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => handleComment(post.id)}>
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  {post.comments}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => handleShare(post.id)}>
+                  <Share2 className="w-4 h-4 mr-2" />
+                  {post.shares}
+                </Button>
               </div>
-            )}
-            
-            {post.mediaUrl && post.mediaType === "audio" && (
-              <div className="mb-4 bg-audifyx-purple/10 p-3 rounded-md">
-                <audio controls className="w-full">
-                  <source src={post.mediaUrl} type="audio/mpeg" />
-                  Your browser does not support the audio element.
-                </audio>
-              </div>
-            )}
-            
-            {post.mediaUrl && post.mediaType === "video" && (
-              <div className="mb-4 bg-audifyx-purple/10 rounded-md overflow-hidden">
-                <video controls className="w-full">
-                  <source src={post.mediaUrl} type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-            )}
-            
-            <div className="flex gap-4">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className={post.isLiked ? "text-audifyx-purple" : ""}
-                onClick={() => handleLike(post.id)}
-              >
-                <Heart className={`w-4 h-4 mr-2 ${post.isLiked ? 'fill-audifyx-purple' : ''}`} />
-                {post.likes}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => handleComment(post.id)}>
-                <MessageCircle className="w-4 h-4 mr-2" />
-                {post.comments}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => handleShare(post.id)}>
-                <Share2 className="w-4 h-4 mr-2" />
-                {post.shares}
-              </Button>
             </div>
           </Card>
         ))

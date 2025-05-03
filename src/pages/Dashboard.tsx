@@ -156,6 +156,27 @@ export default function Dashboard() {
         <Sidebar />
 
         <main className={`flex-1 ${isMobile ? 'ml-0' : 'ml-64'} p-4 md:p-8`}>
+          {/* Stories section moved to top */}
+          <Card className="mb-6 bg-audifyx-purple/20 border-audifyx-purple/20 overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xl flex items-center">Stories</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4 overflow-x-auto pb-2">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex-shrink-0 hover-scale">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-r from-audifyx-purple to-audifyx-blue p-[2px]">
+                      <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
+                        <span className="text-2xl">🎵</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-center mt-1 truncate w-20">Artist {i + 1}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          
           <Card className="mb-8 border-audifyx-purple/20 bg-gradient-to-br from-audifyx-purple/20 to-audifyx-blue/20 backdrop-blur-sm overflow-hidden animate-fade-in">
             <CardContent className="p-6 md:p-8 flex flex-col md:flex-row justify-between items-center">
               <div className="text-center md:text-left mb-4 md:mb-0">
@@ -235,6 +256,7 @@ export default function Dashboard() {
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6 animate-fade-in">
+                  {/* Stats cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <Card className="bg-audifyx-purple/20 border-audifyx-purple/20 hover:bg-audifyx-purple/30 transition-all">
                       <CardContent className="p-4 flex flex-col items-center">
@@ -279,6 +301,7 @@ export default function Dashboard() {
                     )}
                   </div>
 
+                  {/* Recently played/tracks/campaigns */}
                   <Card className="bg-audifyx-purple/20 border-audifyx-purple/20">
                     <CardHeader>
                       <CardTitle className="text-xl">
@@ -339,6 +362,7 @@ export default function Dashboard() {
                     </CardFooter>
                   </Card>
 
+                  {/* Social feed */}
                   <Card className="bg-audifyx-purple/20 border-audifyx-purple/20">
                     <CardHeader>
                       <CardTitle className="text-xl">Social Feed</CardTitle>
@@ -445,7 +469,7 @@ export default function Dashboard() {
                             <span className="text-2xl">🎵</span>
                           </div>
                         </div>
-                        <p className="text-xs text-center mt-1 truncate w-20">User {i + 1}</p>
+                        <p className="text-xs text-center mt-1 truncate w-20">Artist {i + 1}</p>
                       </div>
                     ))}
                   </div>
