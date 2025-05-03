@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   Sheet,
@@ -13,7 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  Dashboard,
+  LayoutDashboard,
   Music,
   Video,
   Compass,
@@ -56,7 +57,7 @@ export function Sidebar() {
       icon: "video",
     },
     {
-      label: "Social Room", // Added new tab
+      label: "Social Room", 
       path: "/social-room",
       icon: "users", 
     },
@@ -117,7 +118,7 @@ export function Sidebar() {
                   className="w-full justify-start h-9"
                   onClick={() => handleNavigation(route.path)}
                 >
-                  {route.icon === "dashboard" && <Dashboard className="mr-2 h-4 w-4" />}
+                  {route.icon === "dashboard" && <LayoutDashboard className="mr-2 h-4 w-4" />}
                   {route.icon === "music" && <Music className="mr-2 h-4 w-4" />}
                   {route.icon === "video" && <Video className="mr-2 h-4 w-4" />}
                   {route.icon === "compass" && <Compass className="mr-2 h-4 w-4" />}

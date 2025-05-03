@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -129,6 +128,7 @@ export default function Settings() {
   }
   
   return (
+    
     <div className="min-h-screen bg-gradient-audifyx text-white">
       <div className="flex">
         <Sidebar />

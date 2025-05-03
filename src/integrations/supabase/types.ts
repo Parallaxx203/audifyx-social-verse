@@ -292,6 +292,24 @@ export type Database = {
           },
         ]
       }
+      "group members": {
+        Row: {
+          id: string
+          "is admin": boolean | null
+          "user id": string
+        }
+        Insert: {
+          id?: string
+          "is admin"?: boolean | null
+          "user id"?: string
+        }
+        Update: {
+          id?: string
+          "is admin"?: boolean | null
+          "user id"?: string
+        }
+        Relationships: []
+      }
       group_chat_members: {
         Row: {
           group_id: string
@@ -373,6 +391,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      groups: {
+        Row: {
+          "created at": string | null
+          creator_id: string | null
+          id: string
+          name: string
+          theme: string | null
+        }
+        Insert: {
+          "created at"?: string | null
+          creator_id?: string | null
+          id?: string
+          name: string
+          theme?: string | null
+        }
+        Update: {
+          "created at"?: string | null
+          creator_id?: string | null
+          id?: string
+          name?: string
+          theme?: string | null
+        }
+        Relationships: []
       }
       messages: {
         Row: {
