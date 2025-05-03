@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,11 +18,12 @@ import Call from "./pages/Call";
 import Settings from "@/pages/Settings";
 import CreatorHub from "./pages/CreatorHub";
 import BrandHub from "./pages/BrandHub";
+import MyTracks from "@/pages/MyTracks";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import ViewProfile from "@/pages/ViewProfile";
 import TestDB from "@/pages/TestDB";
-import PayoutRequest from "@/pages/PayoutRequest"; // Import the PayoutRequest component
-import SocialRoom from "@/pages/SocialRoom"; // Import the new SocialRoom page
+import PayoutRequest from "@/pages/PayoutRequest";
+import SocialRoom from "@/pages/SocialRoom";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +45,11 @@ function App() {
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              } />
+              <Route path="/my-tracks" element={
+                <ProtectedRoute>
+                  <MyTracks />
                 </ProtectedRoute>
               } />
               <Route path="/profile/:username" element={<ViewProfile />} />
@@ -77,7 +84,7 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="/test-db" element={<TestDB />} />
-              <Route path="/payouts" element={<PayoutRequest />} /> {/* Added PayoutRequest route */}
+              <Route path="/payouts" element={<PayoutRequest />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

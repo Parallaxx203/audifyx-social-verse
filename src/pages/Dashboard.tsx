@@ -10,12 +10,13 @@ import { MiniPhone } from "@/components/dashboard/mini-phone";
 import { ActivityChart, EngagementChart, AudienceChart } from "@/components/dashboard/DashboardCharts";
 import { 
   BarChart2, Music, Bell, Calendar, ChevronRight, Heart, 
-  MessageSquare, Share2, TrendingUp, Users, Wallet 
+  MessageSquare, Share2, TrendingUp, Users, Wallet, Upload 
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { UploadTrackModal } from "@/components/creator/UploadTrackModal";
 
 export default function Dashboard() {
   const isMobile = useIsMobile();
@@ -168,15 +169,38 @@ export default function Dashboard() {
                 </p>
               </div>
               <div className="flex gap-4">
-                <Button 
-                  size="lg" 
-                  className="bg-audifyx-purple hover:bg-audifyx-purple-vivid transition-colors"
-                  onClick={() => navigate(accountType === 'creator' ? '/upload' : accountType === 'brand' ? '/brand-hub' : '/discover')}
-                >
-                  {accountType === 'listener' && 'Explore Tracks'}
-                  {accountType === 'creator' && 'Upload Track'}
-                  {accountType === 'brand' && 'Create Campaign'}
-                </Button>
+                {accountType === 'creator' && (
+                  <>
+                    <UploadTrackModal />
+                    <Button 
+                      size="lg" 
+                      variant="outline" 
+                      className="border-audifyx-purple/30 hover:bg-audifyx-purple/20 transition-colors"
+                      onClick={() => navigate('/my-tracks')}
+                    >
+                      <Music className="mr-2 h-4 w-4" />
+                      View All Tracks
+                    </Button>
+                  </>
+                )}
+                {accountType === 'listener' && (
+                  <Button 
+                    size="lg" 
+                    className="bg-audifyx-purple hover:bg-audifyx-purple-vivid transition-colors"
+                    onClick={() => navigate('/discover')}
+                  >
+                    Explore Tracks
+                  </Button>
+                )}
+                {accountType === 'brand' && (
+                  <Button 
+                    size="lg" 
+                    className="bg-audifyx-purple hover:bg-audifyx-purple-vivid transition-colors"
+                    onClick={() => navigate('/brand-hub')}
+                  >
+                    Create Campaign
+                  </Button>
+                )}
                 <Button 
                   size="lg" 
                   variant="outline" 
@@ -285,22 +309,31 @@ export default function Dashboard() {
                                   ? 'Create your first campaign to connect with creators!'
                                   : 'Follow creators to discover new music!'}
                             </p>
-                            <Button 
-                              className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
-                              onClick={() => navigate(accountType === 'creator' ? '/upload' : accountType === 'brand' ? '/brand-hub' : '/discover')}
-                            >
-                              {accountType === 'creator' ? 'Upload Track' : accountType === 'brand' ? 'Create Campaign' : 'Discover Creators'}
-                            </Button>
+                            {accountType === 'creator' ? (
+                              <UploadTrackModal />
+                            ) : (
+                              <Button 
+                                className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
+                                onClick={() => navigate(accountType === 'brand' ? '/brand-hub' : '/discover')}
+                              >
+                                {accountType === 'brand' ? 'Create Campaign' : 'Discover Creators'}
+                              </Button>
+                            )}
                           </Card>
                         )}
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button variant="ghost" size="sm" className="ml-auto" onClick={() => navigate(
-                        accountType === 'creator' ? '/upload' : 
-                        accountType === 'brand' ? '/brand-hub' : 
-                        '/discover'
-                      )}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="ml-auto" 
+                        onClick={() => navigate(
+                          accountType === 'creator' ? '/my-tracks' : 
+                          accountType === 'brand' ? '/brand-hub' : 
+                          '/discover'
+                        )}
+                      >
                         View All <ChevronRight className="ml-1 h-4 w-4" />
                       </Button>
                     </CardFooter>
@@ -463,25 +496,6 @@ export default function Dashboard() {
                     View All Notifications
                   </Button>
                 </CardFooter>
-              </Card>
-
-              <Card className="bg-audifyx-purple/20 border-audifyx-purple/20">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-xl">Upcoming</CardTitle>
-                  <Calendar className="h-5 w-5" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="p-3 bg-audifyx-purple/10 rounded-md">
-                      <p className="font-medium">Live Stream Session</p>
-                      <p className="text-xs text-gray-400">Tomorrow, 8:00 PM</p>
-                    </div>
-                    <div className="p-3 bg-audifyx-purple/10 rounded-md">
-                      <p className="font-medium">New Release</p>
-                      <p className="text-xs text-gray-400">Friday, 12:00 PM</p>
-                    </div>
-                  </div>
-                </CardContent>
               </Card>
             </div>
           </div>

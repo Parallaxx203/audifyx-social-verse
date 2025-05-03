@@ -9,13 +9,15 @@ import { UploadTrackModal } from "@/components/creator/UploadTrackModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreatorStats } from "@/hooks/useCreatorStats";
 import { useProfile } from "@/hooks/useProfile";
-import { BarChart, LineChart, PieChart } from "lucide-react";
+import { BarChart, LineChart, PieChart, Settings as SettingsIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { usePoints } from "@/hooks/usePoints";
+import { useNavigate } from "react-router-dom";
 
 export default function CreatorHub() {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { data: profile } = useProfile(user?.id);
   const { data: stats } = useCreatorStats(user?.id);
@@ -23,15 +25,6 @@ export default function CreatorHub() {
   const [activeTab, setActiveTab] = useState("overview");
   const accountType = user?.user_metadata?.accountType || 'listener';
   const isAllowedToUpload = accountType === 'creator' || accountType === 'brand';
-
-  // Placeholder data for charts
-  const weeklyListeners = [120, 220, 180, 250, 210, 290, 310];
-  const topTracks = [
-    { name: "Summer Vibes", plays: 1240 },
-    { name: "Midnight Dreams", plays: 890 },
-    { name: "Ocean Waves", plays: 750 },
-    { name: "City Lights", plays: 620 },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-audifyx text-white">
@@ -45,7 +38,13 @@ export default function CreatorHub() {
                 <p className="text-gray-400">Manage your content, track performance, and grow your audience</p>
               </div>
               <div className="flex gap-3">
-                <Button variant="outline">Schedule Post</Button>
+                <Button variant="outline" onClick={() => navigate('/settings')}>
+                  <SettingsIcon className="mr-2 h-4 w-4" />
+                  Settings
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/profile')}>
+                  Profile
+                </Button>
                 {isAllowedToUpload && (
                   <UploadTrackModal />
                 )}
@@ -59,7 +58,7 @@ export default function CreatorHub() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{stats?.views_count || 0}</div>
-                  <p className="text-xs text-gray-400 mt-1">+12% from last month</p>
+                  <p className="text-xs text-gray-400 mt-1">Track your content's reach</p>
                 </CardContent>
               </Card>
               <Card className="bg-audifyx-purple-dark/50 border-audifyx-purple/30">
@@ -68,7 +67,7 @@ export default function CreatorHub() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{stats?.followers_count || 0}</div>
-                  <p className="text-xs text-gray-400 mt-1">+5 new followers this week</p>
+                  <p className="text-xs text-gray-400 mt-1">Build your audience</p>
                 </CardContent>
               </Card>
               <Card className="bg-audifyx-purple-dark/50 border-audifyx-purple/30">
@@ -102,13 +101,13 @@ export default function CreatorHub() {
                       </CardHeader>
                       <CardContent>
                         <div className="h-[200px] flex items-end justify-between gap-2">
-                          {weeklyListeners.map((value, i) => (
+                          {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
                             <div key={i} className="relative h-full flex-1 flex flex-col justify-end">
                               <div 
                                 className="bg-audifyx-purple rounded-t w-full" 
-                                style={{ height: `${(value / Math.max(...weeklyListeners)) * 100}%` }}
+                                style={{ height: '0%' }}
                               ></div>
-                              <span className="text-xs mt-1 text-center">{['M', 'T', 'W', 'T', 'F', 'S', 'S'][i]}</span>
+                              <span className="text-xs mt-1 text-center">{day}</span>
                             </div>
                           ))}
                         </div>
@@ -123,17 +122,7 @@ export default function CreatorHub() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="space-y-4">
-                          {topTracks.map((track, i) => (
-                            <div key={i}>
-                              <div className="flex justify-between mb-1">
-                                <span className="text-sm">{track.name}</span>
-                                <span className="text-sm text-gray-400">{track.plays} plays</span>
-                              </div>
-                              <Progress value={(track.plays / topTracks[0].plays) * 100} className="h-2" />
-                            </div>
-                          ))}
-                        </div>
+                        <p className="text-center py-6 text-gray-400">Coming Soon</p>
                       </CardContent>
                     </Card>
                   </div>
@@ -147,35 +136,7 @@ export default function CreatorHub() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="flex justify-center mb-4">
-                          <div className="w-32 h-32 rounded-full border-8 border-audifyx-purple relative flex items-center justify-center">
-                            <div className="w-24 h-24 rounded-full border-8 border-audifyx-purple-vivid"></div>
-                            <div className="absolute top-0 right-0 w-10 h-10 rounded-full bg-audifyx-purple-light"></div>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-audifyx-purple rounded-full"></div>
-                              <span className="text-sm">18-24</span>
-                            </div>
-                            <span className="text-sm">45%</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-audifyx-purple-vivid rounded-full"></div>
-                              <span className="text-sm">25-34</span>
-                            </div>
-                            <span className="text-sm">35%</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-audifyx-purple-light rounded-full"></div>
-                              <span className="text-sm">35+</span>
-                            </div>
-                            <span className="text-sm">20%</span>
-                          </div>
-                        </div>
+                        <p className="text-center py-6 text-gray-400">Coming Soon - Data in Development</p>
                       </CardContent>
                     </Card>
                     

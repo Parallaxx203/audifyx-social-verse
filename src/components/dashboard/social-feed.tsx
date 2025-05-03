@@ -4,19 +4,20 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Heart, MessageCircle, Share2, Music, Image, User } from "lucide-react";
+import { Heart, MessageCircle, Share2, Music, Image, User, File, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { usePoints } from "@/hooks";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { MediaUploader } from "@/components/ui/media-uploader";
 
 export interface Post {
   id: string;
   username: string;
   avatar: string;
   content: string;
-  mediaType?: "audio" | "image";
+  mediaType?: "audio" | "image" | "video";
   mediaUrl?: string;
   likes: number;
   comments: number;
@@ -29,11 +30,13 @@ export function SocialFeed() {
   const { user } = useAuth();
   const { data: profile } = useProfile(user?.id);
   const [post, setPost] = useState("");
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<"audio" | "image" | "video" | null>(null);
+  const [showMediaUploader, setShowMediaUploader] = useState<"audio" | "image" | "video" | null>(null);
   const { awardPoints } = usePoints();
   const { toast } = useToast();
   const [isPostingContent, setIsPostingContent] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [showStories, setShowStories] = useState(true);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
 
   // Fetch posts when component mounts
@@ -58,51 +61,41 @@ export function SocialFeed() {
 
       if (data && data.length > 0) {
         // Format data to include username and avatar at the top level
-        const formattedData: Post[] = data.map((post) => ({
-          id: post.id,
-          username: post.profiles?.username || 'Unknown User',
-          avatar: post.profiles?.avatar_url || '',
-          content: post.content,
-          mediaType: post.image_url ? "image" : undefined,
-          mediaUrl: post.image_url || undefined,
-          likes: 0, // We would fetch this from a likes table
-          comments: 0, // We would fetch this from a comments table
-          shares: 0, // We would track this separately
-          isLiked: false, // We would check if current user liked it
-          timestamp: new Date(post.created_at).toLocaleDateString()
-        }));
+        const formattedData: Post[] = data.map((post) => {
+          let detectedMediaType: "audio" | "image" | "video" | undefined = undefined;
+          
+          if (post.image_url) {
+            const fileExt = post.image_url.split('.').pop()?.toLowerCase();
+            if (fileExt) {
+              if (['mp3', 'wav', 'm4a'].includes(fileExt)) {
+                detectedMediaType = "audio";
+              } else if (['mp4', 'webm', 'ogg'].includes(fileExt)) {
+                detectedMediaType = "video";
+              } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) {
+                detectedMediaType = "image";
+              }
+            }
+          }
+          
+          return {
+            id: post.id,
+            username: post.profiles?.username || 'Unknown User',
+            avatar: post.profiles?.avatar_url || '',
+            content: post.content,
+            mediaType: detectedMediaType,
+            mediaUrl: post.image_url || undefined,
+            likes: 0, // We would fetch this from a likes table
+            comments: 0, // We would fetch this from a comments table
+            shares: 0, // We would track this separately
+            isLiked: false, // We would check if current user liked it
+            timestamp: new Date(post.created_at).toLocaleDateString()
+          };
+        });
 
         setPosts(formattedData);
       } else {
-        // If no posts, add sample posts
-        setPosts([
-          {
-            id: "sample1",
-            username: "demo_user",
-            avatar: "/placeholder.svg",
-            content: "Just dropped a new track! 🎵 Check it out!",
-            mediaType: "audio",
-            mediaUrl: "#",
-            likes: 42,
-            comments: 8,
-            shares: 12,
-            isLiked: false,
-            timestamp: "Just now"
-          },
-          {
-            id: "sample2",
-            username: "artist_official",
-            avatar: "/placeholder.svg",
-            content: "Live streaming tonight! Don't miss it 🎤",
-            mediaType: "image",
-            mediaUrl: "/placeholder.svg",
-            likes: 156,
-            comments: 23,
-            shares: 45,
-            isLiked: true,
-            timestamp: "2h ago"
-          }
-        ]);
+        // If no posts, show empty state
+        setPosts([]);
       }
     } catch (error) {
       console.error('Error fetching posts:', error);
@@ -117,7 +110,7 @@ export function SocialFeed() {
   };
 
   const handlePost = async () => {
-    if (!post.trim() || !user) return;
+    if ((!post.trim() && !mediaUrl) || !user) return;
     
     setIsPostingContent(true);
     try {
@@ -127,6 +120,7 @@ export function SocialFeed() {
         .insert({
           content: post,
           user_id: user.id,
+          image_url: mediaUrl
         })
         .select()
         .single();
@@ -139,6 +133,8 @@ export function SocialFeed() {
         username: profile?.username || user.email?.split('@')[0] || 'User',
         avatar: profile?.avatar_url || '',
         content: post,
+        mediaType: mediaType || undefined,
+        mediaUrl: mediaUrl || undefined,
         likes: 0,
         comments: 0,
         shares: 0,
@@ -148,6 +144,9 @@ export function SocialFeed() {
       
       setPosts([newPost, ...posts]);
       setPost("");
+      setMediaUrl(null);
+      setMediaType(null);
+      setShowMediaUploader(null);
       
       // Award points
       await awardPoints('POST_CREATION');
@@ -259,50 +258,24 @@ export function SocialFeed() {
     }
   };
 
-  const stories = [
-    {
-      id: 1,
-      username: "user1",
-      avatar: "/placeholder.svg",
-      hasUnseenStory: true
-    },
-    {
-      id: 2,
-      username: "user2",
-      avatar: "/placeholder.svg",
-      hasUnseenStory: true
-    },
-    {
-      id: 3,
-      username: "user3",
-      avatar: "/placeholder.svg",
-      hasUnseenStory: false
-    }
-  ];
+  const handleRemoveMedia = () => {
+    setMediaUrl(null);
+    setMediaType(null);
+    setShowMediaUploader(null);
+  };
+
+  const handleMediaSelect = (type: "audio" | "image" | "video") => {
+    setShowMediaUploader(type);
+  };
+
+  const handleMediaUpload = (url: string) => {
+    setMediaUrl(url);
+    setMediaType(showMediaUploader);
+    setShowMediaUploader(null);
+  };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {showStories && (
-        <div className="overflow-x-auto py-4">
-          <div className="flex gap-4">
-            {stories.map(story => (
-              <div key={story.id} className="flex-shrink-0 hover-scale">
-                <div className={`w-16 h-16 rounded-full p-[2px] ${story.hasUnseenStory ? 'bg-gradient-to-tr from-audifyx-purple to-audifyx-blue' : 'bg-gray-700'}`}>
-                  <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
-                    {story.avatar ? (
-                      <img src={story.avatar} alt={story.username} className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="h-8 w-8 text-gray-400" />
-                    )}
-                  </div>
-                </div>
-                <p className="text-xs text-center mt-1 truncate w-16">{story.username}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      
       <Card className="p-4 bg-audifyx-purple-dark/30 backdrop-blur-sm border-audifyx-purple/20">
         <div className="flex items-start gap-3">
           <Avatar className="w-10 h-10">
@@ -317,21 +290,87 @@ export function SocialFeed() {
               className="mb-2 bg-transparent resize-none"
               rows={2}
             />
+            
+            {showMediaUploader && (
+              <div className="mb-4 p-3 bg-audifyx-purple/10 rounded-md">
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-sm">
+                    {showMediaUploader === "audio" ? "Add Audio File" : 
+                     showMediaUploader === "video" ? "Add Video" : "Add Image"}
+                  </p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setShowMediaUploader(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <MediaUploader
+                  onUploadComplete={handleMediaUpload}
+                  allowedTypes={showMediaUploader === "audio" ? "audio" : showMediaUploader === "video" ? "video" : "both"}
+                  userId={user?.id || ""}
+                />
+              </div>
+            )}
+            
+            {mediaUrl && !showMediaUploader && (
+              <div className="mb-3 p-3 bg-audifyx-purple/10 rounded-md flex items-center justify-between">
+                <div className="flex items-center">
+                  {mediaType === "audio" && <Music className="h-5 w-5 mr-2" />}
+                  {mediaType === "video" && <File className="h-5 w-5 mr-2" />}
+                  {mediaType === "image" && <Image className="h-5 w-5 mr-2" />}
+                  <span className="text-sm truncate">Media attached</span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleRemoveMedia}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            
             <div className="flex justify-between items-center">
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" className="text-audifyx-purple">
-                  <Music className="w-4 h-4 mr-1" />
-                  Add Track
-                </Button>
-                <Button variant="ghost" size="sm" className="text-audifyx-purple">
-                  <Image className="w-4 h-4 mr-1" />
-                  Add Media
-                </Button>
+                {!showMediaUploader && !mediaUrl && (
+                  <>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-audifyx-purple"
+                      onClick={() => handleMediaSelect("audio")}
+                    >
+                      <Music className="w-4 h-4 mr-1" />
+                      Add Track
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-audifyx-purple"
+                      onClick={() => handleMediaSelect("image")}
+                    >
+                      <Image className="w-4 h-4 mr-1" />
+                      Add Image
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-audifyx-purple"
+                      onClick={() => handleMediaSelect("video")}
+                    >
+                      <File className="w-4 h-4 mr-1" />
+                      Add Video
+                    </Button>
+                  </>
+                )}
               </div>
               <Button
                 onClick={handlePost}
                 className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
-                disabled={isPostingContent || !post.trim()}
+                disabled={isPostingContent || (!post.trim() && !mediaUrl)}
               >
                 {isPostingContent ? "Posting..." : "Post"}
               </Button>
@@ -370,12 +409,20 @@ export function SocialFeed() {
             )}
             
             {post.mediaUrl && post.mediaType === "audio" && (
-              <div className="mb-4 bg-audifyx-purple/10 p-3 rounded-md flex items-center">
-                <Music className="h-6 w-6 mr-2" />
-                <span>Audio track attached</span>
-                <Button variant="secondary" size="sm" className="ml-auto">
-                  Play
-                </Button>
+              <div className="mb-4 bg-audifyx-purple/10 p-3 rounded-md">
+                <audio controls className="w-full">
+                  <source src={post.mediaUrl} type="audio/mpeg" />
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+            )}
+            
+            {post.mediaUrl && post.mediaType === "video" && (
+              <div className="mb-4 bg-audifyx-purple/10 rounded-md overflow-hidden">
+                <video controls className="w-full">
+                  <source src={post.mediaUrl} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
               </div>
             )}
             
