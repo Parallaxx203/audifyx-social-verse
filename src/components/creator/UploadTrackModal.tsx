@@ -187,7 +187,7 @@ export function UploadTrackModal() {
               </div>
             ) : (
               <MediaUploader
-                allowedTypes="both"
+                allowedTypes="image"
                 userId={user?.id || ""}
                 onUploadComplete={handleCoverUpload}
               />

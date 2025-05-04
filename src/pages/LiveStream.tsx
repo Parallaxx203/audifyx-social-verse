@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sidebar } from "@/components/dashboard/sidebar";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,8 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TwitchIntegrationPanel } from "@/components/profile/TwitchIntegrationPanel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
-import { SendHorizontal } from "lucide-react";
+import { LiveStreamChat } from "@/components/live-stream/LiveStreamChat";
 
 export default function LiveStream() {
   const isMobile = useIsMobile();
@@ -19,8 +17,6 @@ export default function LiveStream() {
   const { toast } = useToast();
   const [streamers, setStreamers] = useState<any[]>([]);
   const [selectedStreamer, setSelectedStreamer] = useState<any>(null);
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -28,29 +24,6 @@ export default function LiveStream() {
       fetchStreamers();
     }
   }, [user]);
-
-  useEffect(() => {
-    if (selectedStreamer) {
-      fetchChatMessages(selectedStreamer.id);
-
-      // Subscribe to new messages
-      const channel = supabase
-        .channel("stream_chat")
-        .on("postgres_changes", {
-          event: "INSERT",
-          schema: "public",
-          table: "stream_chat",
-          filter: `streamer_id=eq.${selectedStreamer.id}`,
-        }, (payload) => {
-          setMessages((prev) => [...prev, payload.new]);
-        })
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [selectedStreamer]);
 
   const fetchStreamers = async () => {
     try {
@@ -73,47 +46,6 @@ export default function LiveStream() {
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const fetchChatMessages = async (streamerId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("stream_chat")
-        .select("*, profiles(*)")
-        .eq("streamer_id", streamerId)
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-      setMessages(data || []);
-    } catch (error) {
-      console.error("Error fetching chat messages:", error);
-    }
-  };
-
-  const sendMessage = async () => {
-    if (!message.trim() || !selectedStreamer || !user) return;
-    
-    try {
-      const { error } = await supabase
-        .from("stream_chat")
-        .insert({
-          content: message,
-          user_id: user.id,
-          streamer_id: selectedStreamer.id
-        });
-      
-      if (error) throw error;
-      
-      // Clear the message input
-      setMessage("");
-    } catch (error) {
-      console.error("Error sending message:", error);
-      toast({
-        title: "Error",
-        description: "Failed to send message",
-        variant: "destructive",
-      });
     }
   };
 
@@ -219,48 +151,7 @@ export default function LiveStream() {
                           <CardTitle>Live Chat</CardTitle>
                         </CardHeader>
                         <CardContent className="flex-1 flex flex-col overflow-hidden">
-                          <div className="flex-1 overflow-y-auto mb-4 space-y-3">
-                            {messages.length > 0 ? (
-                              messages.map((msg) => (
-                                <div key={msg.id} className="flex gap-2">
-                                  <Avatar className="h-6 w-6">
-                                    <AvatarImage src={msg.profiles?.avatar_url} />
-                                    <AvatarFallback>
-                                      {msg.profiles?.username?.[0]?.toUpperCase() || "U"}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <p className="text-xs font-medium">
-                                      {msg.profiles?.username || "User"}
-                                    </p>
-                                    <p className="text-sm">{msg.content}</p>
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-center text-gray-400 text-sm">
-                                No messages yet. Start the conversation!
-                              </p>
-                            )}
-                          </div>
-                          <div className="mt-auto">
-                            <div className="flex gap-2">
-                              <Input
-                                placeholder="Type a message..."
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                                className="bg-background/10 border-audifyx-purple/30"
-                              />
-                              <Button
-                                className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
-                                size="icon"
-                                onClick={sendMessage}
-                              >
-                                <SendHorizontal className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
+                          <LiveStreamChat streamer={selectedStreamer} />
                         </CardContent>
                       </Card>
                     </div>

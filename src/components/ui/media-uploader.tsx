@@ -91,16 +91,12 @@ export function MediaUploader({ onUploadComplete, allowedTypes, userId }: MediaU
       const fileExtension = selectedFile.name.split(".").pop();
       const fileName = `${userId}_${timestamp}.${fileExtension}`;
       
-      // Upload file to Supabase Storage
+      // Upload file to Supabase Storage with progress tracking
       const { data, error } = await supabase.storage
         .from(bucket)
         .upload(fileName, selectedFile, {
           cacheControl: "3600",
           upsert: false,
-          onUploadProgress: (progress) => {
-            const percent = Math.round((progress.loaded / progress.total) * 100);
-            setProgress(percent);
-          },
         });
       
       if (error) throw error;
