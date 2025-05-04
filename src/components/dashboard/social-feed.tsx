@@ -26,6 +26,13 @@ export function SocialFeed() {
       }, () => {
         fetchPosts();
       })
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'posts',
+      }, () => {
+        fetchPosts();
+      })
       .subscribe();
 
     return () => {

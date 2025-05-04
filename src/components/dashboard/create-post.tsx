@@ -19,6 +19,7 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [selectedAudio, setSelectedAudio] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [audioName, setAudioName] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
@@ -43,6 +44,7 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
 
     setSelectedImage(file);
     setSelectedAudio(null); // Can't have both image and audio
+    setAudioName(null);
     
     // Create preview
     const reader = new FileReader();
@@ -55,6 +57,7 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
   const handleAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) {
       setSelectedAudio(null);
+      setAudioName(null);
       return;
     }
 
@@ -69,6 +72,7 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
     }
 
     setSelectedAudio(file);
+    setAudioName(file.name);
     setSelectedImage(null); // Can't have both image and audio
     setImagePreview(null);
   };
@@ -81,6 +85,7 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
 
   const clearAudio = () => {
     setSelectedAudio(null);
+    setAudioName(null);
     if (audioInputRef.current) audioInputRef.current.value = "";
   };
 
@@ -160,6 +165,7 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
       setSelectedImage(null);
       setSelectedAudio(null);
       setImagePreview(null);
+      setAudioName(null);
       if (imageInputRef.current) imageInputRef.current.value = "";
       if (audioInputRef.current) audioInputRef.current.value = "";
 
@@ -221,10 +227,10 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
         )}
 
         {/* Audio Preview */}
-        {selectedAudio && (
+        {audioName && (
           <div className="relative mb-4 flex items-center gap-3 bg-audifyx-purple/10 rounded-md p-3">
             <Music className="h-6 w-6" />
-            <span className="text-sm truncate">{selectedAudio.name}</span>
+            <span className="text-sm truncate">{audioName}</span>
             <Button
               variant="destructive"
               size="icon"
@@ -243,7 +249,7 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
               size="sm"
               className="text-gray-400 hover:text-white"
               onClick={() => imageInputRef.current?.click()}
-              disabled={!!selectedAudio}
+              disabled={!!selectedAudio || isSubmitting}
             >
               <Image className="h-4 w-4 mr-1" />
               Photo
@@ -261,7 +267,7 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
               size="sm"
               className="text-gray-400 hover:text-white"
               onClick={() => audioInputRef.current?.click()}
-              disabled={!!selectedImage}
+              disabled={!!selectedImage || isSubmitting}
             >
               <Music className="h-4 w-4 mr-1" />
               Audio

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PlusCircle, X } from "lucide-react";
+import { PlusCircle, X, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,8 +31,9 @@ export function StoryComponent() {
   useEffect(() => {
     fetchStories();
 
+    // Subscribe to changes in the stories table
     const channel = supabase
-      .channel('public:stories')
+      .channel('stories-channel')
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -49,22 +50,43 @@ export function StoryComponent() {
 
   const fetchStories = async () => {
     try {
-      const { data, error } = await supabase
+      // First, fetch stories
+      const { data: storiesData, error: storiesError } = await supabase
         .from('stories')
-        .select(`
-          id,
-          user_id,
-          media_url,
-          created_at,
-          type,
-          profiles (username, avatar_url)
-        `)
+        .select('id, user_id, media_url, created_at, type')
         .order('created_at', { ascending: false })
         // Filter to only show stories from the last 24 hours
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
-      if (error) throw error;
-      setStories(data || []);
+      if (storiesError) throw storiesError;
+      
+      if (!storiesData || storiesData.length === 0) {
+        setStories([]);
+        return;
+      }
+      
+      // Then, fetch profile information for each story
+      const userIds = [...new Set(storiesData.map(story => story.user_id))];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .in('id', userIds);
+      
+      if (profilesError) throw profilesError;
+      
+      // Combine stories with profile data
+      const storiesWithProfiles = storiesData.map(story => {
+        const profile = profilesData?.find(profile => profile.id === story.user_id);
+        return {
+          ...story,
+          profiles: {
+            username: profile?.username || 'Unknown user',
+            avatar_url: profile?.avatar_url
+          }
+        };
+      });
+      
+      setStories(storiesWithProfiles);
     } catch (error) {
       console.error("Error fetching stories:", error);
       toast({
@@ -153,6 +175,25 @@ export function StoryComponent() {
     setIsStoryOpen(true);
   };
 
+  const renderStoryContent = () => {
+    if (!selectedStory) return null;
+    
+    return selectedStory.type === 'image' ? (
+      <img
+        src={selectedStory.media_url}
+        alt="Story"
+        className="max-h-[80vh] object-contain"
+      />
+    ) : (
+      <video
+        src={selectedStory.media_url}
+        controls
+        autoPlay
+        className="max-h-[80vh] object-contain"
+      />
+    );
+  };
+
   return (
     <div>
       <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
@@ -168,7 +209,11 @@ export function StoryComponent() {
                   onChange={handleFileChange}
                   disabled={isUploading}
                 />
-                <PlusCircle size={24} className="text-white" />
+                {isUploading ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                ) : (
+                  <PlusCircle size={24} className="text-white" />
+                )}
               </label>
             </div>
             <p className="text-xs text-center mt-1 truncate w-20">
@@ -201,7 +246,7 @@ export function StoryComponent() {
               <Avatar className="h-8 w-8">
                 <AvatarImage src={selectedStory?.profiles.avatar_url} />
                 <AvatarFallback>
-                  {selectedStory?.profiles.username.charAt(0).toUpperCase()}
+                  {selectedStory?.profiles.username.charAt(0).toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <DialogTitle className="text-white">
@@ -218,20 +263,7 @@ export function StoryComponent() {
           </DialogHeader>
           
           <div className="flex items-center justify-center h-full">
-            {selectedStory?.type === 'image' ? (
-              <img
-                src={selectedStory.media_url}
-                alt="Story"
-                className="max-h-[80vh] object-contain"
-              />
-            ) : (
-              <video
-                src={selectedStory?.media_url}
-                controls
-                autoPlay
-                className="max-h-[80vh] object-contain"
-              />
-            )}
+            {renderStoryContent()}
           </div>
         </DialogContent>
       </Dialog>

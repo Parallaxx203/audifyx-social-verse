@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,13 +30,25 @@ interface SocialFeedPostProps {
   onPostDeleted?: () => void;
 }
 
+interface Comment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  profiles: {
+    username: string;
+    avatar_url?: string;
+  };
+}
+
 export function SocialFeedPost({ post, onPostDeleted }: SocialFeedPostProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const [comments, setComments] = useState<any[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -44,6 +56,35 @@ export function SocialFeedPost({ post, onPostDeleted }: SocialFeedPostProps) {
   // Check if the current user is the post author
   const isAuthor = user?.id === post.user_id;
   
+  // Check if the user has liked this post
+  useEffect(() => {
+    if (user) {
+      checkIfLiked();
+    }
+  }, [user, post.id]);
+
+  const checkIfLiked = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('post_likes')
+        .select('id')
+        .eq('post_id', post.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (error) {
+        console.error("Error checking like status:", error);
+        return;
+      }
+      
+      setLiked(!!data);
+    } catch (error) {
+      console.error("Error in checkIfLiked:", error);
+    }
+  };
+
   const handleLike = async () => {
     if (!user) {
       toast({
@@ -65,7 +106,13 @@ export function SocialFeedPost({ post, onPostDeleted }: SocialFeedPostProps) {
 
         if (error) throw error;
         setLiked(false);
-        setLikesCount(prev => prev - 1);
+        setLikesCount(prev => Math.max(prev - 1, 0));
+
+        // Update post likes count
+        await supabase
+          .from('posts')
+          .update({ likes_count: likesCount - 1 })
+          .eq('id', post.id);
       } else {
         // Like
         const { error } = await supabase
@@ -79,7 +126,13 @@ export function SocialFeedPost({ post, onPostDeleted }: SocialFeedPostProps) {
         setLiked(true);
         setLikesCount(prev => prev + 1);
         
-        // Increment creator stat
+        // Update post likes count
+        await supabase
+          .from('posts')
+          .update({ likes_count: likesCount + 1 })
+          .eq('id', post.id);
+        
+        // Increment creator stat if this is not the user's own post
         if (user.id !== post.user_id) {
           await supabase.rpc('increment_creator_stat_with_points', {
             creator_id: post.user_id,
@@ -102,20 +155,46 @@ export function SocialFeedPost({ post, onPostDeleted }: SocialFeedPostProps) {
     if (!commentsOpen) {
       setIsLoadingComments(true);
       try {
-        const { data, error } = await supabase
+        // Fetch comments for this post
+        const { data: commentsData, error: commentsError } = await supabase
           .from('post_comments')
           .select(`
             id, 
             content, 
             created_at,
-            user_id, 
-            profiles:user_id (username, avatar_url)
+            user_id
           `)
           .eq('post_id', post.id)
           .order('created_at', { ascending: true });
         
-        if (error) throw error;
-        setComments(data || []);
+        if (commentsError) throw commentsError;
+        
+        // Now fetch user details for each comment
+        if (commentsData && commentsData.length > 0) {
+          const userIds = [...new Set(commentsData.map(comment => comment.user_id))];
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url')
+            .in('id', userIds);
+          
+          if (profilesError) throw profilesError;
+          
+          // Map profiles to comments
+          const commentsWithProfiles = commentsData.map(comment => {
+            const profile = profilesData?.find(profile => profile.id === comment.user_id);
+            return {
+              ...comment,
+              profiles: {
+                username: profile?.username || 'Unknown user',
+                avatar_url: profile?.avatar_url
+              }
+            };
+          });
+          
+          setComments(commentsWithProfiles);
+        } else {
+          setComments([]);
+        }
       } catch (error) {
         console.error("Error fetching comments:", error);
         toast({
@@ -135,34 +214,51 @@ export function SocialFeedPost({ post, onPostDeleted }: SocialFeedPostProps) {
     
     setIsSubmittingComment(true);
     try {
-      const { data, error } = await supabase
+      // Insert the comment
+      const { data: newCommentData, error: insertError } = await supabase
         .from('post_comments')
         .insert({
           post_id: post.id,
           user_id: user.id,
           content: newComment.trim()
         })
-        .select(`
-          id, 
-          content, 
-          created_at,
-          user_id, 
-          profiles:user_id (username, avatar_url)
-        `)
+        .select()
         .single();
       
-      if (error) throw error;
+      if (insertError) throw insertError;
       
-      setComments(prev => [...prev, data]);
+      // Fetch the user's profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileError) throw profileError;
+      
+      // Add new comment to state
+      const commentWithProfile = {
+        ...newCommentData,
+        profiles: {
+          username: profileData.username || 'Unknown user',
+          avatar_url: profileData.avatar_url
+        }
+      };
+      
+      setComments(prev => [...prev, commentWithProfile]);
       setNewComment("");
       
-      // Increment comment count for the post
+      // Update comments count
+      const newCommentsCount = commentsCount + 1;
+      setCommentsCount(newCommentsCount);
+      
+      // Update post comment count in the database
       await supabase
         .from('posts')
-        .update({ comments_count: (post.comments_count || 0) + 1 })
+        .update({ comments_count: newCommentsCount })
         .eq('id', post.id);
       
-      // Increment creator stat
+      // Increment creator stat if this is not the user's own post
       if (user.id !== post.user_id) {
         await supabase.rpc('increment_creator_stat_with_points', {
           creator_id: post.user_id,
@@ -197,10 +293,14 @@ export function SocialFeedPost({ post, onPostDeleted }: SocialFeedPostProps) {
       // Remove from local state
       setComments(prev => prev.filter(comment => comment.id !== commentId));
       
-      // Decrement comment count
+      // Update comment count
+      const newCommentsCount = Math.max(commentsCount - 1, 0);
+      setCommentsCount(newCommentsCount);
+      
+      // Update post comment count
       await supabase
         .from('posts')
-        .update({ comments_count: Math.max((post.comments_count || 0) - 1, 0) })
+        .update({ comments_count: newCommentsCount })
         .eq('id', post.id);
     } catch (error) {
       console.error("Error deleting comment:", error);
@@ -327,7 +427,7 @@ export function SocialFeedPost({ post, onPostDeleted }: SocialFeedPostProps) {
         
         <Button variant="ghost" size="sm" onClick={fetchComments}>
           <MessageSquare className="h-4 w-4 mr-1" />
-          {post.comments_count > 0 && <span>{post.comments_count}</span>}
+          {commentsCount > 0 && <span>{commentsCount}</span>}
         </Button>
         
         <Button variant="ghost" size="sm">

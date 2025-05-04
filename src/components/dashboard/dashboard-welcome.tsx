@@ -12,11 +12,17 @@ export function DashboardWelcome() {
 
   return (
     <div className="space-y-6">
+      {/* Welcome banner */}
+      <div className="bg-gradient-to-r from-audifyx-purple-dark/50 via-audifyx-purple/50 to-audifyx-purple-dark/50 text-white rounded-lg p-0 overflow-hidden">
+        <div className="welcome-banner-container">
+          <div className="welcome-banner">
+            Welcome to Audifyx – Where Sound Meets Social
+          </div>
+        </div>
+      </div>
+
       {/* Stories section */}
       <div className="mb-6">
-        <div className="text-center py-2 bg-gradient-to-r from-audifyx-purple-dark/50 via-audifyx-purple/50 to-audifyx-purple-dark/50 text-white rounded-lg mb-4">
-          Welcome to Audifyx – Where Sound Meets Social
-        </div>
         <StoryComponent />
       </div>
 
@@ -44,6 +50,29 @@ export function DashboardWelcome() {
           </Button>
         </div>
       )}
+
+      <style jsx>{`
+        .welcome-banner-container {
+          overflow: hidden;
+          white-space: nowrap;
+        }
+        .welcome-banner {
+          display: inline-block;
+          padding-left: 100%;
+          animation: marquee 15s linear infinite;
+          font-size: 1.25rem;
+          padding-top: 0.75rem;
+          padding-bottom: 0.75rem;
+        }
+        @keyframes marquee {
+          0% {
+            transform: translate(0, 0);
+          }
+          100% {
+            transform: translate(-100%, 0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
