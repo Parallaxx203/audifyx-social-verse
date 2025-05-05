@@ -10,6 +10,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { EditProfileModal } from "@/components/profile/EditProfileModal";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFollowUser } from "@/hooks/useFollowUser";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -17,6 +18,9 @@ export default function Profile() {
   const [isLoading, setIsLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { checkFollowStatus } = useFollowUser();
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
 
   useEffect(() => {
     if (!user) {
@@ -24,7 +28,23 @@ export default function Profile() {
       return;
     }
     setIsLoading(false);
+    
+    // Load follower counts when user is available
+    if (user.id) {
+      loadFollowCounts(user.id);
+    }
   }, [navigate, user]);
+
+  // Load follower and following counts
+  const loadFollowCounts = async (userId: string) => {
+    try {
+      const { followerCount, followingCount } = await checkFollowStatus(userId);
+      setFollowerCount(followerCount);
+      setFollowingCount(followingCount);
+    } catch (error) {
+      console.error("Error loading follow counts:", error);
+    }
+  };
 
   const { data: profile, isLoading: profileLoading } = useProfile(user?.id);
 
@@ -58,8 +78,8 @@ export default function Profile() {
                 username={profile.username}
                 avatarUrl={profile.avatar_url}
                 isOwnProfile={true}
-                followers={0} // We'll update these with real data later
-                following={0}
+                followers={followerCount}
+                following={followingCount}
                 joinedDate={profile.created_at}
                 role={profile.account_type}
                 bio={profile.bio}
