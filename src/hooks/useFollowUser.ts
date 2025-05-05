@@ -103,7 +103,7 @@ export function useFollowUser() {
     
     try {
       // Check if current user is following this user
-      const userIsFollowing = user ? await isFollowing(userId) : false;
+      const isFollowing = user ? await isFollowing(userId) : false;
       
       // Get follower count
       const { count: followerCount, error: followerError } = await supabase
@@ -122,7 +122,7 @@ export function useFollowUser() {
       if (followingError) throw followingError;
       
       return {
-        isFollowing: userIsFollowing,
+        isFollowing,
         followerCount: followerCount || 0,
         followingCount: followingCount || 0
       };
