@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Search, Users, Plus, Send, Phone, Video, UserPlus } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Search, Users, Plus, Send, Phone, Video, UserPlus, Trash, MoreVertical, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks";
@@ -12,6 +13,8 @@ import { CreateGroupChatModal } from "@/components/messages/CreateGroupChatModal
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 interface Message {
   id: string;
@@ -21,6 +24,7 @@ interface Message {
   sender?: {
     username: string;
     avatar_url: string;
+    is_online: boolean;
   };
 }
 
@@ -52,7 +56,11 @@ export default function Messages() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [chatType, setChatType] = useState<'recent' | 'groups' | 'dms'>('recent');
-
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
     if (user) {
       fetchChats();
@@ -64,7 +72,7 @@ export default function Messages() {
       }
     }
   }, [user, searchParams]);
-
+  
   useEffect(() => {
     if (activeChat) {
       fetchMessages(activeChat);
@@ -84,7 +92,7 @@ export default function Messages() {
       };
     }
   }, [activeChat]);
-
+  
   const fetchChats = async () => {
     setLoading(true);
     try {
@@ -149,7 +157,7 @@ export default function Messages() {
       setLoading(false);
     }
   };
-
+  
   const fetchMessages = async (chatId: string) => {
     try {
       let query;
@@ -193,7 +201,7 @@ export default function Messages() {
       console.error('Error fetching messages:', error);
     }
   };
-
+  
   const sendMessage = async () => {
     if (!message.trim() || !activeChat) return;
     
@@ -250,7 +258,7 @@ export default function Messages() {
       });
     }
   };
-
+  
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     
@@ -268,7 +276,7 @@ export default function Messages() {
       console.error('Error searching users:', error);
     }
   };
-
+  
   const startChat = async (userId: string, username: string, avatarUrl?: string) => {
     setActiveChat(userId);
     setActiveChatType('dm');
@@ -299,7 +307,7 @@ export default function Messages() {
     
     fetchMessages(userId);
   };
-
+  
   const findAndOpenChat = async (username: string) => {
     try {
       const { data, error } = await supabase
@@ -317,13 +325,191 @@ export default function Messages() {
       console.error('Error finding user:', error);
     }
   };
-
+  
   const filteredChats = chatType === 'recent' 
     ? chats 
     : chatType === 'groups' 
       ? chats.filter(chat => chat.type === 'group')
       : chats.filter(chat => chat.type === 'dm');
-
+  
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
+  const renderMessages = () => {
+    if (messages.length === 0) {
+      return (
+        <div className="h-full flex items-center justify-center text-gray-400">
+          <div className="text-center">
+            <p>No messages yet</p>
+            <p className="text-sm">Send a message to start the conversation</p>
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-4 pb-2">
+        {messages.map((msg) => {
+          const isCurrentUser = msg.sender_id === user?.id;
+          const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          
+          return (
+            <div 
+              key={msg.id} 
+              className={`mb-4 flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+            >
+              <div className={`flex max-w-[70%] ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                {!isCurrentUser && (
+                  <div className="relative mr-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={msg.sender?.avatar_url} />
+                      <AvatarFallback>{(msg.sender?.username || '?')[0].toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    {msg.sender?.is_online && (
+                      <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-green-500 ring-1 ring-white"></span>
+                    )}
+                  </div>
+                )}
+                <div>
+                  {!isCurrentUser && (
+                    <p className="text-xs text-gray-400 mb-1">{msg.sender?.username}</p>
+                  )}
+                  <div 
+                    className={`rounded-lg p-3 relative group ${
+                      isCurrentUser 
+                        ? 'bg-audifyx-purple text-white' 
+                        : 'bg-audifyx-purple-dark/50 text-gray-100'
+                    }`}
+                  >
+                    <p>{msg.content}</p>
+                    <p className="text-xs opacity-70 mt-1">
+                      {time}
+                    </p>
+                    
+                    {/* Delete option only available for own messages */}
+                    {isCurrentUser && (
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-300">
+                              <MoreVertical className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-audifyx-purple-dark/90 border-audifyx-purple/30">
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                setMessageToDelete(msg.id);
+                                setShowDeleteConfirm(true);
+                              }}
+                              className="text-red-400 cursor-pointer flex items-center gap-2"
+                            >
+                              <Trash className="h-3 w-3" />
+                              <span>Delete</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {isCurrentUser && (
+                  <div className="relative ml-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={user?.user_metadata?.avatar_url} />
+                      <AvatarFallback>{(user?.user_metadata?.username || 'U')[0].toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-green-500 ring-1 ring-white"></span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+    );
+  };
+  
+  const deleteMessage = async () => {
+    if (!messageToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      let deleteQuery;
+      
+      if (activeChatType === 'dm') {
+        deleteQuery = supabase
+          .from('messages')
+          .delete()
+          .eq('id', messageToDelete);
+      } else {
+        deleteQuery = supabase
+          .from('group_messages')
+          .delete()
+          .eq('id', messageToDelete);
+      }
+      
+      const { error } = await deleteQuery;
+      
+      if (error) throw error;
+      
+      // Remove the message from the state
+      setMessages(prev => prev.filter(msg => msg.id !== messageToDelete));
+      
+      toast({
+        description: "Message deleted successfully"
+      });
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete message',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+      setMessageToDelete(null);
+    }
+  };
+  
+  const deleteConfirmationDialog = (
+    <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <DialogContent className="bg-audifyx-purple-dark/80 border-audifyx-purple/30">
+        <DialogHeader>
+          <DialogTitle>Delete Message</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete this message? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowDeleteConfirm(false)}
+            disabled={isDeleting}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={deleteMessage}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              'Delete'
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+  
   return (
     <div className="min-h-screen bg-gradient-audifyx text-white">
       <div className="flex">
@@ -498,51 +684,7 @@ export default function Messages() {
 
               {/* Messages */}
               <div className="flex-1 p-4 overflow-y-auto bg-audifyx-charcoal/10">
-                {messages.length > 0 ? (
-                  messages.map((msg) => {
-                    const isCurrentUser = msg.sender_id === user?.id;
-                    
-                    return (
-                      <div 
-                        key={msg.id} 
-                        className={`mb-4 flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div className={`flex max-w-[70%] ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                          {!isCurrentUser && (
-                            <Avatar className="h-8 w-8 mr-2">
-                              <AvatarImage src={msg.sender?.avatar_url} />
-                              <AvatarFallback>{(msg.sender?.username || '?')[0].toUpperCase()}</AvatarFallback>
-                            </Avatar>
-                          )}
-                          <div>
-                            {!isCurrentUser && (
-                              <p className="text-xs text-gray-400 mb-1">{msg.sender?.username}</p>
-                            )}
-                            <div 
-                              className={`rounded-lg p-3 ${
-                                isCurrentUser 
-                                  ? 'bg-audifyx-purple text-white' 
-                                  : 'bg-audifyx-purple-dark/50 text-gray-100'
-                              }`}
-                            >
-                              <p>{msg.content}</p>
-                              <p className="text-xs opacity-70 mt-1">
-                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="h-full flex items-center justify-center text-gray-400">
-                    <div className="text-center">
-                      <p>No messages yet</p>
-                      <p className="text-sm">Send a message to start the conversation</p>
-                    </div>
-                  </div>
-                )}
+                {renderMessages()}
               </div>
 
               {/* Message Input */}
@@ -568,6 +710,7 @@ export default function Messages() {
           )}
         </main>
       </div>
+      {deleteConfirmationDialog}
     </div>
   );
 }

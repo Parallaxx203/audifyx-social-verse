@@ -16,7 +16,7 @@ export const usePointsSystem = () => {
       if (!user) return { points: 0 };
       
       const { data, error } = await supabase
-        .from('user_points')
+        .from('points')
         .select('points')
         .eq('user_id', user.id)
         .single();
@@ -71,9 +71,12 @@ export const usePointsSystem = () => {
     return addPoints(userId, 15, 'post_creation');
   };
 
+  const points = pointsData?.points || 0;
+  const earnings = calculateEarnings(points);
+
   return {
-    points: pointsData?.points || 0,
-    earnings: calculateEarnings(pointsData?.points || 0),
+    points,
+    earnings,
     isLoading,
     addPoints,
     calculateEarnings,

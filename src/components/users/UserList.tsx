@@ -1,187 +1,164 @@
 
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { UserPlus, Ban, Flag, MessageSquare, Phone } from "lucide-react";
-import { useToast } from "@/hooks";
-import { useFollowUser } from "@/hooks/useFollowUser";
-import { useAuth } from "@/contexts/AuthContext";
-
-interface User {
-  id: string;
-  username: string;
-  avatar_url?: string;
-  is_online?: boolean;
-  last_seen?: string;
-  account_type?: string;
-}
+import { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { MessageSquare, User, MoreHorizontal, UserX } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { formatDistanceToNow } from 'date-fns';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useFollowUser } from '@/hooks/useFollowUser';
+import { useToast } from '@/hooks/use-toast';
 
 interface UserListProps {
-  users: User[];
-  onUserClick?: (user: User) => void;
+  users: {
+    id: string;
+    username: string;
+    avatar_url?: string | null;
+    is_online?: boolean;
+    last_seen?: string;
+    role?: string;
+    bio?: string;
+  }[];
 }
 
-export function UserList({ users = [], onUserClick }: UserListProps) {
+export function UserList({ users }: UserListProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user: currentUser } = useAuth();
-  const { followUser, unfollowUser, isFollowing, loading } = useFollowUser();
-  const [followingStatus, setFollowingStatus] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    const fetchFollowingStatus = async () => {
-      if (!currentUser?.id) return;
-      
-      const statusMap: Record<string, boolean> = {};
-      for (const user of users) {
-        statusMap[user.id] = await isFollowing(user.id);
+  const viewProfile = (username: string) => {
+    navigate(`/profile/${username}`);
+  };
+
+  const sendMessage = (username: string) => {
+    navigate(`/messages?user=${username}`);
+  };
+
+  const UserCard = ({ user }: { user: UserListProps['users'][0] }) => {
+    const { isFollowing, followUser, unfollowUser, isLoading } = useFollowUser(user.id);
+
+    const handleFollowToggle = async () => {
+      try {
+        if (isFollowing) {
+          await unfollowUser();
+          toast({ description: `You unfollowed ${user.username}` });
+        } else {
+          await followUser();
+          toast({ description: `You are now following ${user.username}` });
+        }
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to update follow status',
+          variant: 'destructive'
+        });
       }
-      setFollowingStatus(statusMap);
     };
-    
-    fetchFollowingStatus();
-  }, [users, currentUser?.id, isFollowing]);
 
-  const handleUserClick = (user: User) => {
-    if (onUserClick) {
-      onUserClick(user);
-    } else {
-      // Default behavior: navigate to user profile
-      navigate(`/profile/${user.username}`);
-    }
-  };
+    const blockUser = () => {
+      toast({
+        description: `User ${user.username} has been blocked`,
+      });
+    };
 
-  const handleFollow = async (e: React.MouseEvent, userId: string) => {
-    e.stopPropagation();
-    try {
-      if (!currentUser) {
-        toast({ title: "Please log in to follow users" });
-        return;
-      }
-
-      const isCurrentlyFollowing = followingStatus[userId];
-      
-      if (isCurrentlyFollowing) {
-        await unfollowUser(userId);
-        setFollowingStatus(prev => ({ ...prev, [userId]: false }));
-        toast({ title: "Unfollowed user" });
-      } else {
-        await followUser(userId);
-        setFollowingStatus(prev => ({ ...prev, [userId]: true }));
-        toast({ title: "Now following user" });
-      }
-    } catch (error) {
-      console.error("Follow error:", error);
-      toast({ title: "Error", description: "Failed to follow user", variant: "destructive" });
-    }
-  };
-
-  const handleBlock = (e: React.MouseEvent, user: User) => {
-    e.stopPropagation();
-    toast({ 
-      title: "User blocked",
-      description: `You have blocked ${user.username}`,
-    });
-    // Implement block functionality here
-  };
-
-  const handleReport = (e: React.MouseEvent, user: User) => {
-    e.stopPropagation();
-    toast({ 
-      title: "Report submitted",
-      description: `Thank you for reporting this user. We'll review your report.`,
-    });
-    // Implement report functionality here
-  };
-
-  const handleMessage = (e: React.MouseEvent, user: User) => {
-    e.stopPropagation();
-    navigate(`/messages?user=${user.id}`);
-  };
-
-  const handleCall = (e: React.MouseEvent, user: User) => {
-    e.stopPropagation();
-    navigate(`/call?user=${user.id}`);
+    return (
+      <Card className="p-4 bg-audifyx-purple-dark/30 border-audifyx-purple/20 hover:bg-audifyx-purple-dark/40 transition-colors">
+        <div className="flex gap-3">
+          <div className="relative">
+            <Avatar className="h-12 w-12 cursor-pointer" onClick={() => viewProfile(user.username)}>
+              <AvatarImage src={user.avatar_url || undefined} />
+              <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+            </Avatar>
+            {user.is_online && (
+              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 ring-1 ring-white"></span>
+            )}
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between">
+              <div>
+                <h3 
+                  className="font-medium hover:underline cursor-pointer" 
+                  onClick={() => viewProfile(user.username)}
+                >
+                  {user.username}
+                </h3>
+                <div className="flex items-center gap-2">
+                  {user.role && (
+                    <Badge 
+                      variant="outline" 
+                      className="text-xs px-1 py-0 h-5 capitalize"
+                    >
+                      {user.role}
+                    </Badge>
+                  )}
+                  {user.last_seen && !user.is_online && (
+                    <p className="text-xs text-gray-400">
+                      Last seen {formatDistanceToNow(new Date(user.last_seen), { addSuffix: true })}
+                    </p>
+                  )}
+                  {user.is_online && (
+                    <p className="text-xs text-green-400">Online now</p>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {user.bio && (
+              <p className="text-sm text-gray-400 mt-1 truncate">{user.bio}</p>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex gap-2 mt-3">
+          <Button 
+            size="sm" 
+            className={isFollowing ? "bg-audifyx-purple/40" : "bg-audifyx-purple hover:bg-audifyx-purple-vivid"}
+            onClick={handleFollowToggle}
+            disabled={isLoading}
+          >
+            <User className="h-3 w-3 mr-1" />
+            {isFollowing ? "Following" : "Follow"}
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => sendMessage(user.username)}>
+            <MessageSquare className="h-3 w-3 mr-1" />
+            Message
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline">
+                <MoreHorizontal className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => viewProfile(user.username)}>
+                View Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={blockUser} className="text-red-500">
+                <UserX className="h-3 w-3 mr-1" />
+                Block User
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </Card>
+    );
   };
 
   return (
-    <div className="space-y-4">
-      {users.map((user) => (
-        <div
-          key={user.id}
-          className="flex flex-col sm:flex-row sm:items-center gap-4 bg-audifyx-purple-dark/60 rounded-lg p-4 cursor-pointer transition hover:bg-audifyx-purple-vivid/10 border border-transparent hover:border-audifyx-purple"
-        >
-          <div className="flex items-center gap-4 flex-grow" onClick={() => handleUserClick(user)}>
-            <Avatar>
-              <AvatarImage src={user.avatar_url || undefined} />
-              <AvatarFallback>{user.username?.[0]?.toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-bold text-lg">{user.username}</div>
-              <div className={`text-xs mt-1 ${user.is_online ? "text-green-400" : "text-gray-400"}`}>
-                {user.is_online ? "Online" : `Last seen: ${user.last_seen ? new Date(user.last_seen).toLocaleString() : "—"}`}
-              </div>
-              <div className="capitalize text-xs text-audifyx-purple">{user.account_type || ""}</div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="flex items-center gap-1" 
-              onClick={(e) => handleFollow(e, user.id)}
-              disabled={loading}
-            >
-              <UserPlus className="h-4 w-4" />
-              <span className="hidden sm:inline">
-                {followingStatus[user.id] ? "Unfollow" : "Follow"}
-              </span>
-            </Button>
-            
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="flex items-center gap-1" 
-              onClick={(e) => handleBlock(e, user)}
-            >
-              <Ban className="h-4 w-4" />
-              <span className="hidden sm:inline">Block</span>
-            </Button>
-            
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="flex items-center gap-1" 
-              onClick={(e) => handleReport(e, user)}
-            >
-              <Flag className="h-4 w-4" />
-              <span className="hidden sm:inline">Report</span>
-            </Button>
-            
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="flex items-center gap-1" 
-              onClick={(e) => handleMessage(e, user)}
-            >
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">Message</span>
-            </Button>
-            
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="flex items-center gap-1" 
-              onClick={(e) => handleCall(e, user)}
-            >
-              <Phone className="h-4 w-4" />
-              <span className="hidden sm:inline">Call</span>
-            </Button>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {users.map(user => (
+        <UserCard key={user.id} user={user} />
+      ))}
+      
+      {users.length === 0 && (
+        <div className="col-span-full flex justify-center py-12">
+          <div className="text-center text-gray-400">
+            <p>No users found</p>
           </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }

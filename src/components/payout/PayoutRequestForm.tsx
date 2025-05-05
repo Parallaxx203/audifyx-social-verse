@@ -1,229 +1,301 @@
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { MediaUploader } from "@/components/ui/media-uploader";
-import { supabase } from "@/integrations/supabase/client";
-import { Upload, XCircle } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, CheckCircle, AlertTriangle, Upload } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
+import { usePointsSystem } from '@/hooks/usePointsSystem';
+import { MediaUploader } from '@/components/ui/media-uploader';
+import { sendPaymentRequestEmail } from '@/api/send-payment-request';
 
-interface PayoutRequestFormProps {
-  userPoints: number;
-  onSuccess: () => void;
-}
-
-export function PayoutRequestForm({ userPoints, onSuccess }: PayoutRequestFormProps) {
+export function PayoutRequestForm() {
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [payoutAmount, setPayoutAmount] = useState("");
-  const [walletAddress, setWalletAddress] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [verificationImage, setVerificationImage] = useState<File | null>(null);
-  const [userId, setUserId] = useState<string>("");
+  const { points, earnings } = usePointsSystem();
   
-  // Fetch user ID on component mount
+  const [walletAddress, setWalletAddress] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<'idle' | 'pending' | 'verified' | 'failed'>('idle');
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [identityUrl, setIdentityUrl] = useState<string | null>(null);
+  
+  const minPointsRequired = 4000;
+  const isEligible = points >= minPointsRequired;
+  
+  // Check for existing pending requests
   useEffect(() => {
-    async function fetchUserId() {
-      const { data } = await supabase.auth.getUser();
-      setUserId(data.user?.id || "");
+    if (user) {
+      fetchPendingRequests();
+      checkVerificationStatus();
     }
-    
-    fetchUserId();
-  }, []);
-
-  const handleImageUpload = async (file: File) => {
-    setVerificationImage(file);
+  }, [user]);
+  
+  const fetchPendingRequests = async () => {
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `verification/${fileName}`;
+      const { data, error } = await supabase
+        .from('withdrawals')
+        .select('*')
+        .eq('user_id', user!.id)
+        .eq('status', 'pending');
       
-      const { error: uploadError } = await supabase.storage
-        .from('payout-images')
-        .upload(filePath, file);
-        
-      if (uploadError) throw uploadError;
+      if (error) throw error;
+      setPendingRequests(data || []);
+    } catch (error) {
+      console.error('Error fetching pending requests:', error);
+    }
+  };
+  
+  const checkVerificationStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_verified, verification_document')
+        .eq('id', user!.id)
+        .single();
       
-      const { data } = supabase.storage
-        .from('payout-images')
-        .getPublicUrl(filePath);
-        
-      if (data && data.publicUrl) {
-        setImageUrl(data.publicUrl);
-        toast({
-          title: "Success",
-          description: "Verification image uploaded successfully"
-        });
+      if (error) throw error;
+      
+      if (data.is_verified) {
+        setVerificationStatus('verified');
+      } else if (data.verification_document) {
+        setVerificationStatus('pending');
+        setIdentityUrl(data.verification_document);
       }
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Error checking verification status:', error);
+    }
+  };
+  
+  const handleVerificationUpload = async (url: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          verification_document: url,
+          verification_submitted_at: new Date().toISOString()
+        })
+        .eq('id', user!.id);
+      
+      if (error) throw error;
+      
+      setVerificationStatus('pending');
+      setIdentityUrl(url);
+      
       toast({
-        title: "Error",
-        description: "Failed to upload verification image",
-        variant: "destructive"
+        title: 'Verification submitted',
+        description: 'Your identity verification is being reviewed.',
+      });
+    } catch (error) {
+      console.error('Error uploading verification:', error);
+      toast({
+        title: 'Verification failed',
+        description: 'There was a problem submitting your verification.',
+        variant: 'destructive',
       });
     }
   };
-
-  const handleUploadComplete = (url: string) => {
-    setImageUrl(url);
-  };
-
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
+    
+    if (!isEligible) {
+      toast({
+        title: 'Not eligible',
+        description: `You need at least ${minPointsRequired} points to request a payout.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!walletAddress) {
+      toast({
+        title: 'Missing information',
+        description: 'Please provide a wallet address.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (verificationStatus !== 'verified') {
+      toast({
+        title: 'Verification required',
+        description: 'You need to complete identity verification first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setSubmitting(true);
+    
     try {
-      if (!imageUrl) {
-        throw new Error('Please upload a verification image');
-      }
-
-      const pointsToRedeem = Math.floor(parseFloat(payoutAmount) * 100); // $1 = 100 points
-      if (pointsToRedeem > userPoints) {
-        throw new Error('Insufficient points');
-      }
-
-      const { error } = await supabase.from('withdrawals').insert({
-        user_id: (await supabase.auth.getUser()).data.user?.id,
-        amount: parseFloat(payoutAmount),
-        status: 'pending',
-        wallet_address: walletAddress,
-        verification_image: imageUrl
+      // Convert points to USD (example rate: 1000 points = $0.50)
+      const usdEquivalent = (points / 2000).toFixed(2);
+      
+      const success = await sendPaymentRequestEmail({
+        username: user?.user_metadata?.username || '',
+        pointsRedeemed: points,
+        walletAddress,
+        usdEquivalent
       });
-
-      if (error) throw error;
-
+      
+      if (!success) throw new Error('Failed to submit request');
+      
       toast({
-        title: 'Success',
-        description: 'Your payout request has been submitted.'
+        title: 'Request submitted',
+        description: 'Your payout request has been submitted successfully.',
       });
-
-      setPayoutAmount('');
-      setWalletAddress('');
-      setImageUrl('');
-      setVerificationImage(null);
-      onSuccess();
-
-    } catch (error: any) {
+      
+      // Fetch updated pending requests
+      await fetchPendingRequests();
+      
+    } catch (error) {
+      console.error('Error submitting payout request:', error);
       toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive'
+        title: 'Request failed',
+        description: 'There was a problem submitting your request. Please try again.',
+        variant: 'destructive',
       });
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
-
+  
+  // For demonstrating file upload
+  const handleFileUpload = (file: File) => {
+    // This is handled by onUploadComplete
+    console.log('File selected:', file.name);
+  };
+  
   return (
-    <Card className="border-audifyx-purple/20 bg-gradient-card">
-      <CardHeader>
-        <CardTitle className="text-2xl">Request Payout</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="bg-audifyx-purple/10 p-4 rounded-lg">
-          <p className="text-sm text-gray-400 mb-1">Available Points</p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-2xl font-bold">{userPoints}</p>
-            <p className="text-lg text-audifyx-purple">≈ ${(userPoints / 100).toFixed(2)} USD</p>
-          </div>
-          <p className="text-xs text-gray-400 mt-1">Minimum withdrawal: 4,000 points ($40)</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="max-w-md mx-auto">
+      <Card className="bg-audifyx-purple-dark/30 border-audifyx-purple/20">
+        <CardHeader>
+          <CardTitle>Request Payout</CardTitle>
+          <CardDescription>
+            Convert your points to cryptocurrency and withdraw to your wallet.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <div className="space-y-4">
-            <div>
-              <label className="text-sm text-gray-400 block mb-1">
-                Amount in USD
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                <Input
-                  type="number"
-                  value={payoutAmount}
-                  onChange={(e) => setPayoutAmount(e.target.value)}
-                  placeholder="0.00"
-                  min="40"
-                  step="0.01"
-                  required
-                  className="pl-8 bg-audifyx-charcoal/50"
-                />
+            <div className="flex justify-between items-center p-3 bg-audifyx-purple/10 rounded-lg">
+              <div>
+                <p className="text-sm text-muted-foreground">Your Points</p>
+                <p className="text-2xl font-bold">{points.toLocaleString()}</p>
               </div>
-              {payoutAmount && (
-                <p className="text-sm text-gray-400 mt-1">
-                  Will use {Math.floor(parseFloat(payoutAmount) * 100)} points
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-400 block mb-1">
-                Solana Wallet Address
-              </label>
-              <Input
-                type="text"
-                value={walletAddress}
-                onChange={(e) => setWalletAddress(e.target.value)}
-                placeholder="Solana address"
-                required
-                className="bg-audifyx-charcoal/50"
-              />
+              <div>
+                <p className="text-sm text-muted-foreground">Estimated Value</p>
+                <p className="text-2xl font-bold">${earnings.toFixed(2)}</p>
+              </div>
             </div>
             
-            <div>
-              <label className="text-sm text-gray-400 block mb-1">
-                Verification Image
-              </label>
-              {!imageUrl ? (
-                <div className="flex flex-col items-center justify-center border-2 border-dashed border-audifyx-purple/30 rounded-lg p-6 bg-audifyx-charcoal/30">
-                  <Upload className="h-10 w-10 text-audifyx-purple/50 mb-2" />
-                  <p className="text-center text-gray-400 mb-4">Upload a verification image</p>
-                  <MediaUploader
-                    onUploadComplete={handleUploadComplete}
-                    allowedTypes="both"
-                    userId={userId}
-                  />
+            {/* Eligibility Status */}
+            <div className="flex items-center gap-2">
+              {isEligible ? (
+                <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30">
+                  Eligible for payout
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                  {minPointsRequired - points} more points needed
+                </Badge>
+              )}
+            </div>
+            
+            {/* Pending Requests */}
+            {pendingRequests.length > 0 && (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-500" />
+                  <p className="text-sm font-medium text-amber-400">
+                    You have {pendingRequests.length} pending payout request{pendingRequests.length > 1 ? 's' : ''}
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Your request is being processed. This typically takes 3-5 business days.
+                </p>
+              </div>
+            )}
+            
+            {/* Verification Status */}
+            <div className="border border-audifyx-purple/20 rounded-lg p-4">
+              <h3 className="font-medium mb-3">Identity Verification</h3>
+              
+              {verificationStatus === 'verified' ? (
+                <div className="flex items-center text-green-400 gap-2">
+                  <CheckCircle className="h-5 w-5" />
+                  <p className="text-sm">Verified</p>
+                </div>
+              ) : verificationStatus === 'pending' ? (
+                <div className="space-y-3">
+                  <div className="flex items-center text-amber-400 gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <p className="text-sm">Verification in progress</p>
+                  </div>
+                  {identityUrl && (
+                    <div className="bg-audifyx-purple/10 rounded p-2 text-xs text-center">
+                      Document submitted
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="relative">
-                  <img 
-                    src={imageUrl} 
-                    alt="Verification" 
-                    className="h-40 w-auto object-contain rounded-lg border border-audifyx-purple/30" 
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Please upload a valid ID document to verify your identity.
+                  </p>
+                  <MediaUploader 
+                    accept="image/*,.pdf" 
+                    onUpload={handleFileUpload}
+                    userId={user?.id || ''} 
+                    onUploadComplete={handleVerificationUpload}
+                    allowedTypes="image"
+                    buttonText="Upload ID Document"
                   />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={() => {
-                      setImageUrl('');
-                      setVerificationImage(null);
-                    }}
-                  >
-                    <XCircle className="h-4 w-4" />
-                  </Button>
                 </div>
               )}
             </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="wallet">Crypto Wallet Address</Label>
+                <Input
+                  id="wallet"
+                  placeholder="Enter your wallet address"
+                  value={walletAddress}
+                  onChange={(e) => setWalletAddress(e.target.value)}
+                  className="bg-audifyx-charcoal/50"
+                />
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full bg-audifyx-purple hover:bg-audifyx-purple-vivid"
+                disabled={!isEligible || submitting || pendingRequests.length > 0 || verificationStatus !== 'verified' || !walletAddress}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  'Request Payout'
+                )}
+              </Button>
+            </form>
           </div>
-
-          <Button 
-            type="submit" 
-            disabled={loading || !imageUrl || userPoints < 4000} 
-            className="w-full bg-audifyx-purple hover:bg-audifyx-purple-vivid"
-          >
-            {loading ? 'Submitting...' : 'Request Payout'}
-          </Button>
-          
-          {userPoints < 4000 && (
-            <p className="text-sm text-red-400 text-center">
-              You need at least 4,000 points to request a payout
-            </p>
-          )}
-        </form>
-      </CardContent>
-    </Card>
+        </CardContent>
+        <CardFooter className="flex justify-center border-t border-audifyx-purple/20 pt-4">
+          <p className="text-xs text-muted-foreground text-center">
+            Payouts are processed within 3-5 business days after approval.
+            <br />
+            A valid ID verification is required for all payouts.
+          </p>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }

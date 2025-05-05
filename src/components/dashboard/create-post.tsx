@@ -7,7 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Image, Music, X, Loader2 } from "lucide-react";
+import { Image, Music, Video, X, Loader2 } from "lucide-react";
+import { MediaUploader } from "@/components/ui/media-uploader";
+import { Badge } from "@/components/ui/badge";
+import { usePointsSystem } from "@/hooks/usePointsSystem";
 
 interface CreatePostProps {
   onPostCreated: () => void;
@@ -16,77 +19,22 @@ interface CreatePostProps {
 export function CreatePost({ onPostCreated }: CreatePostProps) {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [selectedAudio, setSelectedAudio] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [audioName, setAudioName] = useState<string | null>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
+  const [mediaType, setMediaType] = useState<"photo" | "audio" | "video" | null>(null);
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [previewType, setPreviewType] = useState<string | null>(null);
+  
   const { user } = useAuth();
   const { toast } = useToast();
+  const { addPoints } = usePointsSystem();
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) {
-      setSelectedImage(null);
-      setImagePreview(null);
-      return;
-    }
-
-    const file = e.target.files[0];
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Invalid file",
-        description: "Please select an image file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSelectedImage(file);
-    setSelectedAudio(null); // Can't have both image and audio
-    setAudioName(null);
-    
-    // Create preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+  const clearMedia = () => {
+    setMediaType(null);
+    setMediaUrl(null);
+    setPreviewType(null);
   };
 
-  const handleAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) {
-      setSelectedAudio(null);
-      setAudioName(null);
-      return;
-    }
-
-    const file = e.target.files[0];
-    if (!file.type.startsWith("audio/")) {
-      toast({
-        title: "Invalid file",
-        description: "Please select an audio file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSelectedAudio(file);
-    setAudioName(file.name);
-    setSelectedImage(null); // Can't have both image and audio
-    setImagePreview(null);
-  };
-
-  const clearImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-    if (imageInputRef.current) imageInputRef.current.value = "";
-  };
-
-  const clearAudio = () => {
-    setSelectedAudio(null);
-    setAudioName(null);
-    if (audioInputRef.current) audioInputRef.current.value = "";
+  const handleMediaUploadComplete = (url: string) => {
+    setMediaUrl(url);
   };
 
   const handleSubmit = async () => {
@@ -99,10 +47,10 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
       return;
     }
 
-    if (!content.trim() && !selectedImage && !selectedAudio) {
+    if (!content.trim() && !mediaUrl) {
       toast({
         title: "Empty post",
-        description: "Please add some content, an image, or audio to your post",
+        description: "Please add some content, an image, audio, or video to your post",
         variant: "destructive",
       });
       return;
@@ -111,63 +59,29 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
     setIsSubmitting(true);
 
     try {
-      let imageUrl = null;
-      let audioUrl = null;
-
-      // Upload image if selected
-      if (selectedImage) {
-        const filename = `${Date.now()}-${selectedImage.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("posts")
-          .upload(filename, selectedImage);
-
-        if (uploadError) throw uploadError;
-
-        const { data: publicURLData } = supabase.storage
-          .from("posts")
-          .getPublicUrl(filename);
-
-        imageUrl = publicURLData.publicUrl;
-      }
-
-      // Upload audio if selected
-      if (selectedAudio) {
-        const filename = `${Date.now()}-${selectedAudio.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("audio")
-          .upload(filename, selectedAudio);
-
-        if (uploadError) throw uploadError;
-
-        const { data: publicURLData } = supabase.storage
-          .from("audio")
-          .getPublicUrl(filename);
-
-        audioUrl = publicURLData.publicUrl;
-      }
-
       // Create post
       const { error: postError } = await supabase
         .from("posts")
         .insert({
           user_id: user.id,
           content: content.trim(),
-          image_url: imageUrl,
-          audio_url: audioUrl,
-          comments_count: 0,
-          likes_count: 0
+          type: mediaType || "text",
+          url: mediaUrl
         });
 
       if (postError) throw postError;
 
+      // Add points for creating content
+      const pointsValue = mediaType ? 
+        (mediaType === 'photo' ? 10 : 
+         mediaType === 'audio' ? 15 : 
+         mediaType === 'video' ? 20 : 5) : 5;
+      
+      await addPoints(user.id, pointsValue, `post_${mediaType || 'text'}`);
+
       // Reset form
       setContent("");
-      setSelectedImage(null);
-      setSelectedAudio(null);
-      setImagePreview(null);
-      setAudioName(null);
-      if (imageInputRef.current) imageInputRef.current.value = "";
-      if (audioInputRef.current) audioInputRef.current.value = "";
+      clearMedia();
 
       toast({
         title: "Success",
@@ -207,84 +121,101 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
           />
         </div>
 
-        {/* Image Preview */}
-        {imagePreview && (
-          <div className="relative mb-4">
-            <img
-              src={imagePreview}
-              alt="Selected"
-              className="w-full h-auto max-h-64 object-contain rounded-md"
+        {/* Media Type Selector - Only show if no media is selected yet */}
+        {!mediaType && (
+          <div className="flex gap-2 mb-4 flex-wrap">
+            <Badge 
+              variant="outline" 
+              className="cursor-pointer hover:bg-audifyx-purple/20 transition-colors"
+              onClick={() => setMediaType("photo")}
+            >
+              <Image className="h-3 w-3 mr-1" /> Photo
+            </Badge>
+            <Badge 
+              variant="outline" 
+              className="cursor-pointer hover:bg-audifyx-purple/20 transition-colors"
+              onClick={() => setMediaType("audio")}
+            >
+              <Music className="h-3 w-3 mr-1" /> Audio
+            </Badge>
+            <Badge 
+              variant="outline" 
+              className="cursor-pointer hover:bg-audifyx-purple/20 transition-colors"
+              onClick={() => setMediaType("video")}
+            >
+              <Video className="h-3 w-3 mr-1" /> Video
+            </Badge>
+          </div>
+        )}
+
+        {/* Media Upload Area */}
+        {mediaType && !mediaUrl && (
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium">
+                Upload {mediaType === "photo" ? "Photo" : mediaType === "audio" ? "Audio" : "Video"}
+              </span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={clearMedia}
+                className="h-7 px-2 text-xs"
+              >
+                Cancel
+              </Button>
+            </div>
+            <MediaUploader
+              allowedTypes={mediaType}
+              userId={user?.id || ""}
+              onUploadComplete={handleMediaUploadComplete}
+              onUpload={() => {}}
+              maxSizeMB={mediaType === "video" ? 50 : 20}
+              buttonText={`Upload ${mediaType === "photo" ? "Photo" : mediaType === "audio" ? "Audio" : "Video"}`}
             />
+          </div>
+        )}
+
+        {/* Media Preview */}
+        {mediaUrl && (
+          <div className="mb-4 relative">
+            {mediaType === "photo" && (
+              <img 
+                src={mediaUrl} 
+                alt="Post" 
+                className="w-full h-auto max-h-64 object-contain rounded-md" 
+              />
+            )}
+            {mediaType === "audio" && (
+              <audio controls className="w-full">
+                <source src={mediaUrl} type="audio/mpeg" />
+                Your browser does not support the audio element.
+              </audio>
+            )}
+            {mediaType === "video" && (
+              <video 
+                controls 
+                className="w-full h-auto max-h-64 object-contain rounded-md"
+              >
+                <source src={mediaUrl} type="video/mp4" />
+                Your browser does not support the video element.
+              </video>
+            )}
             <Button
               variant="destructive"
               size="icon"
               className="absolute top-2 right-2 h-6 w-6 rounded-full"
-              onClick={clearImage}
+              onClick={clearMedia}
             >
               <X className="h-3 w-3" />
             </Button>
           </div>
         )}
 
-        {/* Audio Preview */}
-        {audioName && (
-          <div className="relative mb-4 flex items-center gap-3 bg-audifyx-purple/10 rounded-md p-3">
-            <Music className="h-6 w-6" />
-            <span className="text-sm truncate">{audioName}</span>
-            <Button
-              variant="destructive"
-              size="icon"
-              className="ml-auto h-6 w-6 rounded-full"
-              onClick={clearAudio}
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
-
-        <div className="flex justify-between items-center">
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-white"
-              onClick={() => imageInputRef.current?.click()}
-              disabled={!!selectedAudio || isSubmitting}
-            >
-              <Image className="h-4 w-4 mr-1" />
-              Photo
-            </Button>
-            <input
-              type="file"
-              ref={imageInputRef}
-              onChange={handleImageChange}
-              className="hidden"
-              accept="image/*"
-            />
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-white"
-              onClick={() => audioInputRef.current?.click()}
-              disabled={!!selectedImage || isSubmitting}
-            >
-              <Music className="h-4 w-4 mr-1" />
-              Audio
-            </Button>
-            <input
-              type="file"
-              ref={audioInputRef}
-              onChange={handleAudioChange}
-              className="hidden"
-              accept="audio/*"
-            />
-          </div>
-
+        <div className="flex justify-end">
           <Button
             className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
             onClick={handleSubmit}
-            disabled={isSubmitting || (!content.trim() && !selectedImage && !selectedAudio)}
+            disabled={isSubmitting || (!content.trim() && !mediaUrl)}
           >
             {isSubmitting ? (
               <>

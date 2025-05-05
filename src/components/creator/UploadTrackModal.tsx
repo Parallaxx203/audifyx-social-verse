@@ -31,6 +31,12 @@ export function UploadTrackModal() {
     setCoverUrl(url);
   };
 
+  // Placeholder function for MediaUploader's onUpload prop
+  const handleFileSelect = (file: File) => {
+    // This is handled by onUploadComplete now
+    console.log("File selected:", file.name);
+  };
+
   const handleSubmit = async () => {
     if (!title || !trackUrl) {
       toast({
@@ -161,9 +167,11 @@ export function UploadTrackModal() {
               </div>
             ) : (
               <MediaUploader
-                allowedTypes="audio"
+                accept="audio/*"
+                onUpload={handleFileSelect}
                 userId={user?.id || ""}
                 onUploadComplete={handleTrackUpload}
+                allowedTypes="audio"
               />
             )}
           </div>
@@ -187,9 +195,11 @@ export function UploadTrackModal() {
               </div>
             ) : (
               <MediaUploader
-                allowedTypes="image"
+                accept="image/*"
+                onUpload={handleFileSelect}
                 userId={user?.id || ""}
                 onUploadComplete={handleCoverUpload}
+                allowedTypes="image"
               />
             )}
           </div>

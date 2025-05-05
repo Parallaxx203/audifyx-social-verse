@@ -1,208 +1,274 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Pencil, Award, Edit } from "lucide-react";
-import { usePoints } from "@/hooks/usePoints";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useFollowUser } from "@/hooks/useFollowUser";
-import { useProfile, Profile } from "@/hooks/useProfile";
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Music, Calendar, Settings, Edit, User, Play, Pause, MessageSquare } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
+import { EditProfileModal } from '@/components/profile/EditProfileModal';
+import { useFollowUser } from '@/hooks/useFollowUser';
 
 interface ProfileHeaderProps {
-  isOwnProfile?: boolean;
-  userId?: string;
+  userId: string;
+  username: string;
+  avatarUrl?: string;
+  isOwnProfile: boolean;
+  followers: number;
+  following: number;
+  joinedDate?: string;
+  role?: string;
+  bio?: string;
 }
 
-export function ProfileHeader({ isOwnProfile = true, userId }: ProfileHeaderProps) {
+export function ProfileHeader({
+  userId,
+  username,
+  avatarUrl,
+  isOwnProfile,
+  followers,
+  following,
+  joinedDate,
+  role = "listener",
+  bio
+}: ProfileHeaderProps) {
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const { totalPoints, loading: pointsLoading } = usePoints();
-  const { data: profile } = useProfile(userId || user?.id);
-  const [followerCount, setFollowerCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
-  const [isFollowingState, setIsFollowingState] = useState(false);
-  const { followUser, unfollowUser, isFollowing, loading } = useFollowUser();
+  const { toast } = useToast();
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [mostPlayedTrack, setMostPlayedTrack] = useState<any>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   
-  const profileId = userId || user?.id;
+  const { 
+    isFollowing, 
+    followUser, 
+    unfollowUser, 
+    isLoading: followLoading 
+  } = useFollowUser(userId);
 
   useEffect(() => {
-    if (profileId) {
-      fetchFollowCounts();
-      
-      if (user && !isOwnProfile) {
-        checkFollowingStatus();
+    if (userId) {
+      fetchMostPlayedTrack();
+    }
+    
+    return () => {
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
       }
-    }
-  }, [profileId, user?.id]);
-  
-  const fetchFollowCounts = async () => {
+    };
+  }, [userId]);
+
+  const fetchMostPlayedTrack = async () => {
     try {
-      // Get follower count
-      const { count: followers, error: followerError } = await supabase
-        .from("follows")
-        .select("*", { count: 'exact', head: true })
-        .eq("following_id", profileId);
+      const { data, error } = await supabase
+        .from('tracks')
+        .select('*')
+        .eq('user_id', userId)
+        .order('play_count', { ascending: false })
+        .limit(1)
+        .single();
 
-      if (followerError) throw followerError;
+      if (error) {
+        // Just means they don't have any tracks, not a real error
+        console.log('User has no tracks');
+        return;
+      }
       
-      // Get following count
-      const { count: following, error: followingError } = await supabase
-        .from("follows")
-        .select("*", { count: 'exact', head: true })
-        .eq("follower_id", profileId);
-
-      if (followingError) throw followingError;
-      
-      setFollowerCount(followers || 0);
-      setFollowingCount(following || 0);
+      setMostPlayedTrack(data);
     } catch (error) {
-      console.error("Error fetching follow counts:", error);
+      console.error('Error fetching most played track:', error);
     }
   };
-  
-  const checkFollowingStatus = async () => {
-    if (!user || !profileId || isOwnProfile) return;
+
+  const togglePlayTrack = () => {
+    if (!mostPlayedTrack?.track_url) return;
     
-    const isUserFollowing = await isFollowing(profileId);
-    setIsFollowingState(isUserFollowing);
-  };
-  
-  const handleFollowToggle = async () => {
-    if (!user || !profileId) return;
-    
-    try {
-      if (isFollowingState) {
-        await unfollowUser(profileId);
-        setIsFollowingState(false);
+    if (!audio) {
+      const newAudio = new Audio(mostPlayedTrack.track_url);
+      newAudio.addEventListener('ended', () => {
+        setIsPlaying(false);
+      });
+      newAudio.play()
+        .then(() => setIsPlaying(true))
+        .catch(err => {
+          console.error('Error playing audio:', err);
+          toast({
+            title: 'Playback Error',
+            description: 'Unable to play the track.',
+            variant: 'destructive',
+          });
+        });
+      setAudio(newAudio);
+    } else {
+      if (isPlaying) {
+        audio.pause();
       } else {
-        await followUser(profileId);
-        setIsFollowingState(true);
+        audio.play()
+          .catch(err => console.error('Error playing audio:', err));
       }
-      
-      // Refresh follow counts
-      fetchFollowCounts();
-    } catch (error) {
-      console.error("Error toggling follow status:", error);
+      setIsPlaying(!isPlaying);
     }
   };
 
-  const getDefaultBanner = () => {
-    // Return gradient background if no banner image
-    return (
-      <div className="w-full h-40 bg-gradient-to-r from-audifyx-purple/80 to-audifyx-blue/80 flex items-center justify-center">
-        <div className="text-white/50 text-lg">
-          {isOwnProfile ? "Add a banner image" : "No banner added"}
-        </div>
-      </div>
-    );
+  const handleFollow = async () => {
+    try {
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "You need to log in to follow users",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (isFollowing) {
+        await unfollowUser();
+        toast({
+          description: `You unfollowed ${username}`,
+        });
+      } else {
+        await followUser();
+        toast({
+          description: `You are now following ${username}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update follow status',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const getDefaultAvatar = () => {
-    // Return placeholder if no profile image
-    const firstLetter = profile?.username?.charAt(0).toUpperCase() || 'A';
-    return (
-      <div className="w-24 h-24 bg-audifyx-purple-dark rounded-full flex items-center justify-center text-3xl text-white border-4 border-audifyx-charcoal">
-        {firstLetter}
-      </div>
-    );
+  const handleMessage = () => {
+    navigate(`/messages?user=${username}`);
+  };
+
+  const getRoleBadgeColor = () => {
+    switch(role?.toLowerCase()) {
+      case 'creator': return 'bg-gradient-to-r from-purple-600 to-blue-500 border-none';
+      case 'brand': return 'bg-gradient-to-r from-amber-500 to-orange-600 border-none';
+      default: return 'bg-audifyx-purple/20 border-audifyx-purple/30';
+    }
   };
 
   return (
-    <div className="relative">
-      {/* Banner */}
-      <div className="relative">
-        {profile?.banner_url ? (
-          <img
-            src={profile.banner_url}
-            alt="Profile banner"
-            className="w-full h-40 object-cover"
-          />
-        ) : (
-          getDefaultBanner()
-        )}
-
-        {isOwnProfile && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-2 right-2 bg-black/30 hover:bg-black/40 text-white"
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-        )}
+    <div className="relative w-full">
+      {/* Gradient Cover Photo */}
+      <div className="h-48 md:h-64 w-full bg-gradient-to-r from-audifyx-purple-dark via-audifyx-purple to-black rounded-b-lg relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
       </div>
-
-      {/* Profile picture + info */}
-      <div className="px-4 -mt-12 relative z-10">
-        <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-          {/* Profile picture */}
-          <div className="relative">
-            {profile?.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt={profile.username}
-                className="w-24 h-24 rounded-full border-4 border-audifyx-charcoal object-cover"
-              />
-            ) : (
-              getDefaultAvatar()
-            )}
-
-            {isOwnProfile && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute bottom-0 right-0 bg-black/30 hover:bg-black/40 text-white rounded-full h-8 w-8"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-
-          {/* Profile info */}
-          <div className="flex-1 pb-4">
-            <div className="flex items-end justify-between w-full">
-              <div>
-                <h1 className="text-2xl font-bold">{profile?.username}</h1>
-                <div className="flex items-center gap-4 text-sm text-gray-400">
-                  <div className="px-4 py-2 bg-audifyx-purple/20 rounded-full flex items-center gap-2">
-                    <Award className="w-4 h-4 text-audifyx-purple" />
-                    <span className="font-bold text-audifyx-purple">
-                      {isOwnProfile ? (pointsLoading ? "..." : totalPoints) : (profile?.points || 0)} Points
-                    </span>
-                  </div>
-                  <span>{followerCount} Followers</span>
-                  <span>{followingCount} Following</span>
-                  <span className="capitalize">{profile?.account_type || "user"}</span>
-                </div>
+      
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Profile Info Section */}
+        <div className="flex flex-col md:flex-row items-start md:items-end gap-4 -mt-20 md:-mt-24 relative z-10 mb-6">
+          {/* Avatar */}
+          <Avatar className="w-28 h-28 md:w-40 md:h-40 border-4 border-background shadow-xl">
+            <AvatarImage src={avatarUrl} />
+            <AvatarFallback className="text-3xl md:text-5xl">
+              {username ? username[0]?.toUpperCase() : "U"}
+            </AvatarFallback>
+          </Avatar>
+          
+          {/* User Info */}
+          <div className="flex-1 flex flex-col md:flex-row items-start md:items-end justify-between w-full">
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">{username}</h1>
+                <Badge variant="outline" className={`${getRoleBadgeColor()} capitalize`}>
+                  {role}
+                </Badge>
               </div>
-
+              
+              <div className="flex items-center gap-4 mt-2">
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold">{followers}</span>
+                  <span className="text-gray-400">Followers</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold">{following}</span>
+                  <span className="text-gray-400">Following</span>
+                </div>
+                {joinedDate && (
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-400">Joined {new Date(joinedDate).toLocaleDateString()}</span>
+                  </div>
+                )}
+              </div>
+              
+              {bio && <p className="mt-4 text-gray-300 max-w-xl">{bio}</p>}
+            </div>
+            
+            <div className="flex gap-2 mt-4 md:mt-0">
               {isOwnProfile ? (
-                <Button className="bg-audifyx-purple hover:bg-audifyx-purple-vivid">
-                  Edit Profile
-                </Button>
+                <>
+                  <Button 
+                    onClick={() => setShowEditModal(true)} 
+                    className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
+                  >
+                    <Edit className="h-4 w-4 mr-2" /> Edit Profile
+                  </Button>
+                  <Button variant="outline" onClick={() => navigate('/settings')}>
+                    <Settings className="h-4 w-4 mr-2" /> Settings
+                  </Button>
+                </>
               ) : (
-                <Button 
-                  className={isFollowingState ? "bg-audifyx-charcoal hover:bg-audifyx-charcoal/80" : "bg-audifyx-purple hover:bg-audifyx-purple-vivid"}
-                  onClick={handleFollowToggle}
-                  disabled={loading}
-                >
-                  {loading ? "Processing..." : (isFollowingState ? "Unfollow" : "Follow")}
-                </Button>
+                <>
+                  <Button 
+                    onClick={handleFollow}
+                    variant={isFollowing ? "outline" : "default"}
+                    className={!isFollowing ? "bg-audifyx-purple hover:bg-audifyx-purple-vivid" : ""}
+                    disabled={followLoading}
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    {isFollowing ? "Following" : "Follow"}
+                  </Button>
+                  <Button onClick={handleMessage} variant="outline">
+                    <MessageSquare className="h-4 w-4 mr-2" /> Message
+                  </Button>
+                </>
               )}
             </div>
           </div>
         </div>
-
-        {/* Bio */}
-        <div className="mt-4 text-gray-300 text-sm">
-          {profile?.bio ? (
-            <p>{profile.bio}</p>
-          ) : (
-            <p className="text-gray-500 italic">
-              {isOwnProfile ? "No bio yet. Edit your profile." : "No bio available."}
-            </p>
-          )}
-        </div>
+        
+        {/* Most Played Track */}
+        {mostPlayedTrack && (
+          <div className="mb-6 p-4 bg-audifyx-purple/10 rounded-lg border border-audifyx-purple/20">
+            <div className="flex items-center gap-3">
+              <Button 
+                size="icon"
+                onClick={togglePlayTrack}
+                variant="ghost"
+                className={`rounded-full bg-audifyx-purple hover:bg-audifyx-purple-vivid h-10 w-10 ${isPlaying ? 'animate-pulse' : ''}`}
+              >
+                {isPlaying ? (
+                  <Pause className="h-5 w-5" />
+                ) : (
+                  <Play className="h-5 w-5" />
+                )}
+              </Button>
+              <div>
+                <div className="text-sm text-gray-400">Most Played Track</div>
+                <div className="font-medium">{mostPlayedTrack.title}</div>
+              </div>
+              <Music className="h-5 w-5 text-audifyx-purple ml-auto" />
+            </div>
+          </div>
+        )}
       </div>
+      
+      <EditProfileModal 
+        open={showEditModal} 
+        onOpenChange={setShowEditModal} 
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SocialFeedPost } from "@/components/dashboard/social-feed-post";
 import { useAuth } from "@/contexts/AuthContext";
 import { UploadPostModal } from "@/components/creator/UploadPostModal";
+import { CreatePost } from "@/components/dashboard/create-post";
 
 interface Post {
   id: string;
@@ -71,7 +72,19 @@ export function SocialFeed() {
         .limit(20);
 
       if (error) throw error;
-      setPosts(data || []);
+      
+      // Process and type-check data before setting state
+      const typedPosts: Post[] = data?.map(post => ({
+        id: post.id,
+        content: post.content,
+        type: post.type,
+        url: post.url,
+        created_at: post.created_at,
+        user_id: post.user_id,
+        profiles: post.profiles || { username: 'Unknown User', avatar_url: '' }
+      })) || [];
+      
+      setPosts(typedPosts);
     } catch (error) {
       console.error("Error fetching posts:", error);
       toast({
@@ -82,6 +95,10 @@ export function SocialFeed() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePostCreated = () => {
+    fetchPosts();
   };
 
   if (loading) {
@@ -105,13 +122,15 @@ export function SocialFeed() {
 
   return (
     <div className="space-y-6">
-      {user && <UploadPostModal />}
+      {user && (
+        <CreatePost onPostCreated={handlePostCreated} />
+      )}
       
       {posts.length > 0 ? (
         posts.map(post => (
           <SocialFeedPost 
             key={post.id} 
-            post={post} 
+            post={post as any} 
             onPostDeleted={fetchPosts}
           />
         ))
