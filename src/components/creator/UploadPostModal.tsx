@@ -1,252 +1,184 @@
 
-import { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { usePointsSystem } from "@/hooks/usePointsSystem";
-import { Image, Video, Music, Upload, Loader2 } from "lucide-react";
+import { useState, useRef } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { MediaUploader } from "@/components/ui/media-uploader"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
+import { useAuth } from "@/contexts/AuthContext"
+import { Loader2, Upload } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export function UploadPostModal() {
-  const [open, setOpen] = useState(false);
-  const [caption, setCaption] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<"photo" | "video" | "audio">("photo");
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const { addPostPoints } = usePointsSystem();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [caption, setCaption] = useState("")
+  const [mediaFile, setMediaFile] = useState<File | null>(null)
+  const [mediaType, setMediaType] = useState<"photo" | "video" | "audio">("photo")
+  
+  const { user } = useAuth()
+  const { toast } = useToast()
 
-  const validateFileType = (file: File, type: "photo" | "video" | "audio") => {
-    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-    const allowedVideoTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo'];
-    const allowedAudioTypes = ['audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/wav', 'audio/x-m4a'];
+  const handleFileSelect = (file: File) => {
+    setMediaFile(file)
     
-    if (type === 'photo' && !allowedImageTypes.includes(file.type)) {
-      toast({
-        title: "Invalid image type",
-        description: "Only JPEG, JPG and PNG images are allowed.",
-        variant: "destructive",
-      });
-      return false;
+    // Determine media type from file
+    if (file.type.startsWith("image/")) {
+      setMediaType("photo")
+    } else if (file.type.startsWith("video/")) {
+      setMediaType("video")
+    } else if (file.type.startsWith("audio/")) {
+      setMediaType("audio")
     }
-    
-    if (type === 'video' && !allowedVideoTypes.includes(file.type)) {
-      toast({
-        title: "Invalid video type",
-        description: "Only MP4, MOV, and AVI videos are allowed.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    if (type === 'audio' && !allowedAudioTypes.includes(file.type)) {
-      toast({
-        title: "Invalid audio type",
-        description: "Only MP3, MP4, WAV, and M4A audio files are allowed.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    return true;
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    if (!validateFileType(file, mediaType)) {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      return;
-    }
-
-    setMediaFile(file);
-    
-    // Create preview URL
-    const previewUrl = URL.createObjectURL(file);
-    setMediaPreview(previewUrl);
-  };
-
+  }
+  
   const handleSubmit = async () => {
-    if (!mediaFile || !user || !caption.trim()) {
+    if (!user) {
       toast({
-        title: "Missing information",
-        description: "Please add a caption and select a file to upload.",
+        title: "Not logged in",
+        description: "You need to be logged in to post",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
-
-    setIsUploading(true);
-
+    
+    if (!mediaFile && !caption.trim()) {
+      toast({
+        title: "Empty post",
+        description: "Please add text or media to your post",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    setIsUploading(true)
+    
     try {
-      // Upload file to storage
-      const fileName = `${Date.now()}_${mediaFile.name.replace(/\s+/g, "_")}`;
-      const filePath = `${user.id}/${fileName}`;
+      let mediaUrl = null
       
-      const { error: uploadError } = await supabase.storage
-        .from("posts")
-        .upload(filePath, mediaFile);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const mediaUrl = supabase.storage.from("posts").getPublicUrl(filePath).data.publicUrl;
-
+      // Upload media file if present
+      if (mediaFile) {
+        const fileExt = mediaFile.name.split('.').pop()
+        const fileName = `${Date.now()}.${fileExt}`
+        const filePath = `${user.id}/${fileName}`
+        
+        // Upload to appropriate bucket based on media type
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('posts')
+          .upload(filePath, mediaFile)
+          
+        if (uploadError) throw uploadError
+        
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from('posts')
+          .getPublicUrl(filePath)
+          
+        mediaUrl = publicUrlData.publicUrl
+      }
+      
       // Create post record
-      const { error: postError } = await supabase.from("posts").insert({
-        user_id: user.id,
-        type: mediaType,
-        url: mediaUrl,
-        caption: caption
-      });
-
-      if (postError) throw postError;
-
-      // Award points for post creation
-      await addPostPoints(user.id);
-
+      const { data, error } = await supabase
+        .from('posts')
+        .insert({
+          user_id: user.id,
+          content: caption,
+          type: mediaFile ? mediaType : null,
+          url: mediaUrl
+        })
+      
+      if (error) throw error
+      
       toast({
-        title: "Post created!",
-        description: "Your post has been published successfully.",
-      });
-
-      // Reset form
-      setCaption("");
-      setMediaFile(null);
-      setMediaPreview(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      setOpen(false);
+        title: "Success",
+        description: "Your post has been published",
+      })
+      
+      // Reset form and close modal
+      setCaption("")
+      setMediaFile(null)
+      setOpen(false)
+      
     } catch (error) {
-      console.error("Error uploading post:", error);
+      console.error("Error creating post:", error)
       toast({
-        title: "Upload failed",
-        description: "There was an error uploading your post. Please try again.",
+        title: "Error",
+        description: "Failed to create post",
         variant: "destructive",
-      });
+      })
     } finally {
-      setIsUploading(false);
+      setIsUploading(false)
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 bg-audifyx-purple hover:bg-audifyx-purple-vivid">
-          <Upload className="h-4 w-4" /> Upload Post
+        <Button className="bg-audifyx-purple hover:bg-audifyx-purple-vivid">
+          <Upload className="mr-2 h-4 w-4" />
+          Create Post
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[525px]">
+      
+      <DialogContent className="sm:max-w-[500px] bg-audifyx-purple-dark/80 border-audifyx-purple/30">
         <DialogHeader>
-          <DialogTitle>Create New Post</DialogTitle>
-          <DialogDescription>
-            Share your content with the community
-          </DialogDescription>
+          <DialogTitle className="text-center">Create New Post</DialogTitle>
         </DialogHeader>
-
-        <Tabs defaultValue="photo" className="w-full" onValueChange={(value) => setMediaType(value as any)}>
+        
+        <Tabs defaultValue="photo" className="w-full">
           <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="photo">
-              <Image className="mr-2 h-4 w-4" />
-              Photo
-            </TabsTrigger>
-            <TabsTrigger value="video">
-              <Video className="mr-2 h-4 w-4" />
-              Video
-            </TabsTrigger>
-            <TabsTrigger value="audio">
-              <Music className="mr-2 h-4 w-4" />
-              Audio
-            </TabsTrigger>
+            <TabsTrigger value="photo">Photo</TabsTrigger>
+            <TabsTrigger value="video">Video</TabsTrigger>
+            <TabsTrigger value="audio">Audio</TabsTrigger>
           </TabsList>
           
-          {/* Common form fields for all media types */}
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="caption">Caption</Label>
-              <Textarea
-                id="caption"
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                placeholder="Write something about your post..."
-                rows={3}
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="media">Upload Media</Label>
-              <Input 
-                id="media" 
-                ref={fileInputRef}
-                type="file"
-                accept={
-                  mediaType === "photo" ? "image/jpeg,image/png,image/jpg" : 
-                  mediaType === "video" ? "video/mp4,video/quicktime,video/x-msvideo" : 
-                  "audio/mpeg,audio/mp3,audio/wav,audio/mp4,audio/x-m4a"
-                }
-                onChange={handleFileChange}
-              />
-            </div>
-
-            {/* Preview area */}
-            {mediaPreview && (
-              <div className="mt-2 border border-audifyx-purple/30 rounded-md p-2 bg-audifyx-charcoal/30">
-                {mediaType === "photo" && (
-                  <img 
-                    src={mediaPreview} 
-                    alt="Preview" 
-                    className="w-full h-auto max-h-[200px] object-contain" 
-                  />
-                )}
-                {mediaType === "video" && (
-                  <video 
-                    src={mediaPreview} 
-                    controls 
-                    className="w-full h-auto max-h-[200px]" 
-                  />
-                )}
-                {mediaType === "audio" && (
-                  <audio 
-                    src={mediaPreview} 
-                    controls 
-                    className="w-full" 
-                  />
-                )}
-              </div>
-            )}
-          </div>
+          <TabsContent value="photo">
+            <MediaUploader
+              onUpload={handleFileSelect}
+              onClear={() => setMediaFile(null)}
+              accept="image/*"
+              maxSizeMB={5}
+              buttonText="Upload Photo"
+            />
+          </TabsContent>
+          
+          <TabsContent value="video">
+            <MediaUploader
+              onUpload={handleFileSelect}
+              onClear={() => setMediaFile(null)}
+              accept="video/*"
+              maxSizeMB={20}
+              buttonText="Upload Video"
+            />
+          </TabsContent>
+          
+          <TabsContent value="audio">
+            <MediaUploader
+              onUpload={handleFileSelect}
+              onClear={() => setMediaFile(null)}
+              accept="audio/*" 
+              maxSizeMB={10}
+              buttonText="Upload Audio"
+            />
+          </TabsContent>
         </Tabs>
-
-        <DialogFooter>
-          <Button 
-            disabled={isUploading} 
-            variant="outline" 
-            onClick={() => setOpen(false)}
-          >
+        
+        <Textarea
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          placeholder="Add a caption..."
+          className="min-h-[100px] bg-background/10 border-border"
+        />
+        
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={isUploading}>
             Cancel
           </Button>
           <Button 
-            disabled={isUploading || !caption || !mediaFile} 
             onClick={handleSubmit} 
             className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
+            disabled={isUploading}
           >
             {isUploading ? (
               <>
@@ -254,11 +186,14 @@ export function UploadPostModal() {
                 Uploading...
               </>
             ) : (
-              "Publish Post"
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Post
+              </>
             )}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

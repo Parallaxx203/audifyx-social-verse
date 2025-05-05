@@ -4,12 +4,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { supabase } from "@/integrations/supabase/client";
 
 // Pages
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
 import Dashboard from "@/pages/Dashboard";
 import Messages from "@/pages/Messages";
 import Call from "@/pages/Call";
@@ -58,7 +55,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return isAuthenticated ? (
     <>{children}</>
   ) : (
-    <Navigate to="/login" replace />
+    <Navigate to="/" replace />
   );
 };
 
@@ -69,8 +66,7 @@ function App() {
         <AuthProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+              <Route path="/" element={<Dashboard />} />
               <Route
                 path="/*"
                 element={
@@ -88,7 +84,7 @@ function App() {
                       {/* Replace MyTracks with Leaderboard */}
                       <Route path="/leaderboard" element={<LeaderboardPage />} />
                       
-                      {/* Update LiveStream page */}
+                      {/* Live Stream page */}
                       <Route path="/live-stream" element={<LiveStreaming />} />
 
                       {/* Other existing routes */}
@@ -106,7 +102,6 @@ function App() {
           <Toaster />
         </AuthProvider>
       </ThemeProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }

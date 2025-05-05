@@ -36,6 +36,7 @@ export const usePointsSystem = () => {
     
     setIsProcessing(true);
     try {
+      // Use our SQL function to add points
       const { error } = await supabase.rpc('add_user_points', {
         user_id: userId,
         points_to_add: amount
