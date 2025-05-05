@@ -1,23 +1,38 @@
 
-// Type definitions for the email request
-export interface PaymentRequestEmail {
-  to: string;
-  points: number;
-  amount: number;
-  screenshotUrl: string;
-  userId: string;
-}
+import { supabase } from '@/integrations/supabase/client';
 
-// This would be implemented as a Supabase edge function
-// Since we've installed nodemailer, this file just contains the interface
-// The actual email sending would be handled by a Supabase edge function
-export async function sendPaymentRequestEmail(data: PaymentRequestEmail): Promise<boolean> {
+export async function sendPaymentRequestEmail(payload: {
+  username: string;
+  pointsRedeemed: number;
+  walletAddress: string;
+  usdEquivalent: string;
+}) {
   try {
-    // In a real implementation, we would call a Supabase edge function here
-    console.log('Would send email with data:', data);
-    return true;
+    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        service_id: 'your_service_id', // Replace with your EmailJS service ID
+        template_id: 'payout_request_template', // Replace with your template ID
+        user_id: 'your_user_id', // Replace with your EmailJS user ID
+        template_params: {
+          to_email: 'loops4aiden@gmail.com',
+          from_name: 'Audifyx Platform',
+          subject: `Payout Request from ${payload.username}`,
+          username: payload.username,
+          points_redeemed: payload.pointsRedeemed,
+          wallet_address: payload.walletAddress,
+          usd_equivalent: payload.usdEquivalent,
+          message: `User ${payload.username} has requested a payout of ${payload.pointsRedeemed} points (${payload.usdEquivalent} USD) to Solana wallet: ${payload.walletAddress}`
+        }
+      })
+    });
+
+    return response.ok;
   } catch (error) {
-    console.error('Error sending payment request email:', error);
+    console.error('Error sending email:', error);
     return false;
   }
 }

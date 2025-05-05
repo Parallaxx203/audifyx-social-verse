@@ -1,169 +1,108 @@
 import { useState } from "react";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  LayoutDashboard,
-  Music,
-  Video,
+  Home,
   Compass,
+  Video,
   MessageSquare,
-  PhoneCall,
-  Settings,
   Users,
+  BarChart2,
+  User,
+  Settings,
+  DollarSign,
   Menu,
-  LogOut,
+  X
 } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
-import { ModeToggle } from "./mode-toggle";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
-interface Route {
+interface SidebarItemProps {
   label: string;
-  path: string;
-  icon: string;
+  icon: any;
+  to: string;
 }
 
 export function Sidebar() {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
-  const [open, setOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  const routes: Route[] = [
-    {
-      label: "Dashboard",
-      path: "/dashboard",
-      icon: "dashboard",
-    },
-    {
-      label: "My Tracks",
-      path: "/my-tracks",
-      icon: "music",
-    },
-    {
-      label: "Creator Hub",
-      path: "/creator-hub",
-      icon: "music",
-    },
-    {
-      label: "Live Stream",
-      path: "/live-stream",
-      icon: "video",
-    },
-    {
-      label: "Social Room", 
-      path: "/social-room",
-      icon: "users", 
-    },
-    {
-      label: "Discover",
-      path: "/discover",
-      icon: "compass",
-    },
-    {
-      label: "Messages",
-      path: "/messages",
-      icon: "messages",
-    },
-    {
-      label: "Call",
-      path: "/call",
-      icon: "phone",
-    },
-    {
-      label: "Settings",
-      path: "/settings",
-      icon: "settings",
-    },
+  const toggleSheet = () => setIsSheetOpen(!isSheetOpen);
+
+  const closeSheet = () => setIsSheetOpen(false);
+
+  const SidebarItem = ({ label, icon: Icon, to }: SidebarItemProps) => {
+    const isActive = location.pathname === to;
+    return (
+      <Link to={to} onClick={isMobile ? closeSheet : undefined}>
+        <div
+          className={`flex items-center gap-3 p-3 rounded-md transition-colors cursor-pointer hover:bg-audifyx-purple/10 ${isActive ? 'bg-audifyx-purple/20' : ''
+            }`}
+        >
+          <Icon className="h-4 w-4" />
+          <span>{label}</span>
+        </div>
+      </Link>
+    );
+  };
+
+  const sidebarItems = [
+    { label: "Home", icon: Home, to: "/" },
+    { label: "Discover", icon: Compass, to: "/discover" },
+    { label: "Live Stream", icon: Video, to: "/live-stream" },
+    { label: "Messages", icon: MessageSquare, to: "/messages" },
+    { label: "Social Room", icon: Users, to: "/social-room" },
+    { label: "Leaderboard", icon: BarChart2, to: "/leaderboard" }, // Replace My Tracks with Leaderboard
+    { label: "Profile", icon: User, to: "/profile" },
+    { label: "Settings", icon: Settings, to: "/settings" },
+    { label: "Payout", icon: DollarSign, to: "/payout-request" }
   ];
 
-  const handleNavigation = (path: string) => {
-    navigate(path);
-    if (isMobile) {
-      setOpen(false); // Close the sidebar in mobile view after navigation
-    }
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
-
-  function SidebarContent() {
-    return (
-      <div className="flex flex-col h-full">
-        <div className="flex items-center px-6 py-3">
-          <Avatar className="h-9 w-9">
-            <AvatarImage src={user?.user_metadata?.avatar_url || ""} />
-            <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <div className="ml-3 flex flex-col space-y-1">
-            <span className="font-semibold">{user?.user_metadata?.full_name}</span>
-            <span className="text-xs text-gray-400">{user?.email}</span>
+  const renderSidebarContent = () => (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-4 p-4">
+        <Avatar>
+          <AvatarImage src={user?.user_metadata?.avatar_url} />
+          <AvatarFallback>{user?.user_metadata?.username?.[0]?.toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <div>
+          <div className="font-bold">{user?.user_metadata?.username}</div>
+          <div className="text-sm text-gray-400">
+            {user?.user_metadata?.accountType || "Listener"}
           </div>
         </div>
-        <nav className="flex-1">
-          <ScrollArea className="h-full">
-            <div className="px-3 py-4">
-              <div className="space-y-1">
-                {routes.map((route) => (
-                  <Button
-                    key={route.label}
-                    variant="ghost"
-                    className="w-full justify-start h-9"
-                    onClick={() => handleNavigation(route.path)}
-                  >
-                    {route.icon === "dashboard" && <LayoutDashboard className="mr-2 h-4 w-4" />}
-                    {route.icon === "music" && <Music className="mr-2 h-4 w-4" />}
-                    {route.icon === "video" && <Video className="mr-2 h-4 w-4" />}
-                    {route.icon === "compass" && <Compass className="mr-2 h-4 w-4" />}
-                    {route.icon === "messages" && <MessageSquare className="mr-2 h-4 w-4" />}
-                    {route.icon === "phone" && <PhoneCall className="mr-2 h-4 w-4" />}
-                    {route.icon === "settings" && <Settings className="mr-2 h-4 w-4" />}
-                    {route.icon === "users" && <Users className="mr-2 h-4 w-4" />}
-                    {route.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </ScrollArea>
-        </nav>
-        <div className="px-6 py-3 flex items-center justify-between">
-          <ModeToggle />
-          <Button variant="ghost" className="h-9 w-9" onClick={handleSignOut}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
-        </div>
       </div>
-    );
-  }
+      <ScrollArea className="flex-1 px-2">
+        <div className="py-2">
+          {sidebarItems.map((item) => (
+            <SidebarItem key={item.label} {...item} />
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
+  );
 
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={setOpen}>
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" className="ml-2">
-            <Menu className="h-5 w-5" />
-          </Button>
+          <Menu className="absolute top-4 left-4 h-6 w-6 text-white cursor-pointer" />
         </SheetTrigger>
-        <SheetContent side="left" className="w-3/4 bg-gradient-audifyx text-white">
-          <SheetHeader className="text-left mt-0">
-            <SheetTitle>Audifyx</SheetTitle>
-            <SheetDescription>Navigate your account</SheetDescription>
-          </SheetHeader>
-          <SidebarContent />
+        <SheetContent side="left" className="w-64 bg-audifyx-purple-dark border-r border-audifyx-purple">
+          {renderSidebarContent()}
         </SheetContent>
       </Sheet>
     );
   }
 
   return (
-    <aside className="fixed left-0 top-0 z-20 flex flex-col h-screen bg-gradient-audifyx text-white w-64">
-      <SidebarContent />
+    <aside className="fixed left-0 top-0 h-full w-64 bg-audifyx-purple-dark border-r border-audifyx-purple">
+      {renderSidebarContent()}
     </aside>
   );
 }

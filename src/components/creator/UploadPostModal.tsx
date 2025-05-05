@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,40 +15,38 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePoints } from "@/hooks/usePoints";
-import { Image, Video, Music, Upload } from "lucide-react";
+import { usePointsSystem } from "@/hooks/usePointsSystem";
+import { Image, Video, Music, Upload, Loader2 } from "lucide-react";
 
 export function UploadPostModal() {
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [caption, setCaption] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<"image" | "video" | "audio" | null>(null);
+  const [mediaType, setMediaType] = useState<"photo" | "video" | "audio">("photo");
   const { toast } = useToast();
   const { user } = useAuth();
-  const { awardPoints } = usePoints();
-  const accountType = user?.user_metadata?.accountType || 'listener';
-  const isAllowedToUpload = accountType === 'creator' || accountType === 'brand';
+  const { addPostPoints } = usePointsSystem();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const validateFileType = (file: File) => {
-    const allowedImageTypes = ['image/jpeg', 'image/png'];
+  const validateFileType = (file: File, type: "photo" | "video" | "audio") => {
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
     const allowedVideoTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo'];
-    const allowedAudioTypes = ['audio/mpeg', 'audio/mp4', 'audio/m4a'];
+    const allowedAudioTypes = ['audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/wav', 'audio/x-m4a'];
     
-    if (mediaType === 'image' && !allowedImageTypes.includes(file.type)) {
+    if (type === 'photo' && !allowedImageTypes.includes(file.type)) {
       toast({
         title: "Invalid image type",
-        description: "Only JPEG and PNG images are allowed.",
+        description: "Only JPEG, JPG and PNG images are allowed.",
         variant: "destructive",
       });
       return false;
     }
     
-    if (mediaType === 'video' && !allowedVideoTypes.includes(file.type)) {
+    if (type === 'video' && !allowedVideoTypes.includes(file.type)) {
       toast({
         title: "Invalid video type",
         description: "Only MP4, MOV, and AVI videos are allowed.",
@@ -57,10 +55,10 @@ export function UploadPostModal() {
       return false;
     }
     
-    if (mediaType === 'audio' && !allowedAudioTypes.includes(file.type)) {
+    if (type === 'audio' && !allowedAudioTypes.includes(file.type)) {
       toast({
         title: "Invalid audio type",
-        description: "Only MP3, MP4, and M4A audio files are allowed.",
+        description: "Only MP3, MP4, WAV, and M4A audio files are allowed.",
         variant: "destructive",
       });
       return false;
@@ -73,32 +71,10 @@ export function UploadPostModal() {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Determine file type
-    if (file.type.startsWith("image/")) {
-      if (!validateFileType(file)) {
-        e.target.value = '';
-        return;
+    if (!validateFileType(file, mediaType)) {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
-      setMediaType("image");
-    } else if (file.type.startsWith("video/")) {
-      if (!validateFileType(file)) {
-        e.target.value = '';
-        return;
-      }
-      setMediaType("video");
-    } else if (file.type.startsWith("audio/")) {
-      if (!validateFileType(file)) {
-        e.target.value = '';
-        return;
-      }
-      setMediaType("audio");
-    } else {
-      toast({
-        title: "Unsupported file type",
-        description: "Please upload an image (JPEG/PNG), video (MP4), or audio file (MP3/M4A).",
-        variant: "destructive",
-      });
-      e.target.value = '';
       return;
     }
 
@@ -110,10 +86,10 @@ export function UploadPostModal() {
   };
 
   const handleSubmit = async () => {
-    if (!title || !mediaFile || !user) {
+    if (!mediaFile || !user || !caption.trim()) {
       toast({
         title: "Missing information",
-        description: "Please fill all required fields and upload a media file.",
+        description: "Please add a caption and select a file to upload.",
         variant: "destructive",
       });
       return;
@@ -126,7 +102,7 @@ export function UploadPostModal() {
       const fileName = `${Date.now()}_${mediaFile.name.replace(/\s+/g, "_")}`;
       const filePath = `${user.id}/${fileName}`;
       
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("posts")
         .upload(filePath, mediaFile);
 
@@ -138,16 +114,15 @@ export function UploadPostModal() {
       // Create post record
       const { error: postError } = await supabase.from("posts").insert({
         user_id: user.id,
-        title,
-        content: description,
-        media_url: mediaUrl,
-        media_type: mediaType
+        type: mediaType,
+        url: mediaUrl,
+        caption: caption
       });
 
       if (postError) throw postError;
 
       // Award points for post creation
-      await awardPoints("POST_CREATION");
+      await addPostPoints(user.id);
 
       toast({
         title: "Post created!",
@@ -155,10 +130,10 @@ export function UploadPostModal() {
       });
 
       // Reset form
-      setTitle("");
-      setDescription("");
+      setCaption("");
       setMediaFile(null);
       setMediaPreview(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       setOpen(false);
     } catch (error) {
       console.error("Error uploading post:", error);
@@ -171,10 +146,6 @@ export function UploadPostModal() {
       setIsUploading(false);
     }
   };
-
-  if (!isAllowedToUpload) {
-    return null;
-  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -191,17 +162,17 @@ export function UploadPostModal() {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="image" className="w-full">
+        <Tabs defaultValue="photo" className="w-full" onValueChange={(value) => setMediaType(value as any)}>
           <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="image" onClick={() => setMediaType("image")}>
+            <TabsTrigger value="photo">
               <Image className="mr-2 h-4 w-4" />
               Photo
             </TabsTrigger>
-            <TabsTrigger value="video" onClick={() => setMediaType("video")}>
+            <TabsTrigger value="video">
               <Video className="mr-2 h-4 w-4" />
               Video
             </TabsTrigger>
-            <TabsTrigger value="audio" onClick={() => setMediaType("audio")}>
+            <TabsTrigger value="audio">
               <Music className="mr-2 h-4 w-4" />
               Audio
             </TabsTrigger>
@@ -210,21 +181,11 @@ export function UploadPostModal() {
           {/* Common form fields for all media types */}
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Give your post a title"
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="caption">Caption</Label>
               <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                id="caption"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
                 placeholder="Write something about your post..."
                 rows={3}
               />
@@ -234,12 +195,12 @@ export function UploadPostModal() {
               <Label htmlFor="media">Upload Media</Label>
               <Input 
                 id="media" 
+                ref={fileInputRef}
                 type="file"
                 accept={
-                  mediaType === "image" ? "image/jpeg,image/png" : 
+                  mediaType === "photo" ? "image/jpeg,image/png,image/jpg" : 
                   mediaType === "video" ? "video/mp4,video/quicktime,video/x-msvideo" : 
-                  mediaType === "audio" ? "audio/mpeg,audio/mp4,audio/m4a" : 
-                  "image/jpeg,image/png,video/mp4,audio/mpeg,audio/mp4,audio/m4a"
+                  "audio/mpeg,audio/mp3,audio/wav,audio/mp4,audio/x-m4a"
                 }
                 onChange={handleFileChange}
               />
@@ -248,7 +209,7 @@ export function UploadPostModal() {
             {/* Preview area */}
             {mediaPreview && (
               <div className="mt-2 border border-audifyx-purple/30 rounded-md p-2 bg-audifyx-charcoal/30">
-                {mediaType === "image" && (
+                {mediaType === "photo" && (
                   <img 
                     src={mediaPreview} 
                     alt="Preview" 
@@ -283,11 +244,18 @@ export function UploadPostModal() {
             Cancel
           </Button>
           <Button 
-            disabled={isUploading || !title || !mediaFile} 
+            disabled={isUploading || !caption || !mediaFile} 
             onClick={handleSubmit} 
             className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
           >
-            {isUploading ? "Uploading..." : "Publish Post"}
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              "Publish Post"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

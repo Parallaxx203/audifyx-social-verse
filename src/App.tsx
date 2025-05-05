@@ -1,95 +1,112 @@
-
+import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import Landing from "./pages/Landing";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import Profile from "@/pages/Profile";
-import NotFound from "./pages/NotFound";
-import Discover from "./pages/Discover";
-import LiveStream from "./pages/LiveStream";
-import AllUsers from "./pages/AllUsers";
-import Messages from "./pages/Messages";
-import Call from "./pages/Call";
-import Settings from "@/pages/Settings";
-import CreatorHub from "./pages/CreatorHub";
-import BrandHub from "./pages/BrandHub";
-import MyTracks from "@/pages/MyTracks";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import ViewProfile from "@/pages/ViewProfile";
-import TestDB from "@/pages/TestDB";
-import PayoutRequest from "@/pages/PayoutRequest";
-import SocialRoom from "@/pages/SocialRoom";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { supabase } from "@/integrations/supabase/client";
 
+// Pages
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import Dashboard from "@/pages/Dashboard";
+import Messages from "@/pages/Messages";
+import Call from "@/pages/Call";
+import CreatorHub from "@/pages/CreatorHub";
+import BrandHub from "@/pages/BrandHub";
+import SocialRoom from "@/pages/SocialRoom";
+import Discover from "@/pages/Discover";
+import Profile from "@/pages/Profile";
+import ViewProfile from "@/pages/ViewProfile";
+import Settings from "@/pages/Settings";
+import AllUsers from "@/pages/AllUsers";
+import PayoutRequest from "@/pages/PayoutRequest";
+import LeaderboardPage from "@/components/leaderboard/LeaderboardPage";
+import LiveStreaming from "@/pages/LiveStreaming";
+
+// Create a client
 const queryClient = new QueryClient();
+
+// Protected route component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      setIsAuthenticated(!!data.session);
+
+      const { data: authListener } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          setIsAuthenticated(!!session);
+        }
+      );
+
+      return () => {
+        authListener.subscription.unsubscribe();
+      };
+    };
+
+    checkAuth();
+  }, []);
+
+  if (isAuthenticated === null) {
+    return <div>Loading...</div>;
+  }
+
+  return isAuthenticated ? (
+    <>{children}</>
+  ) : (
+    <Navigate to="/login" replace />
+  );
+};
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+      <ThemeProvider defaultTheme="dark" storageKey="audifyx-theme">
         <AuthProvider>
-          <Toaster />
-          <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/creator-hub" element={<CreatorHub />} />
-              <Route path="/live-stream" element={<LiveStream />} />
-              <Route path="/social-room" element={<SocialRoom />} />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } />
-              <Route path="/my-tracks" element={
-                <ProtectedRoute>
-                  <MyTracks />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile/:username" element={<ViewProfile />} />
-              <Route path="/discover" element={
-                <ProtectedRoute>
-                  <Discover />
-                </ProtectedRoute>
-              } />
-              <Route path="/users" element={
-                <ProtectedRoute>
-                  <AllUsers />
-                </ProtectedRoute>
-              } />
-              <Route path="/messages" element={
-                <ProtectedRoute>
-                  <Messages />
-                </ProtectedRoute>
-              } />
-              <Route path="/call" element={
-                <ProtectedRoute>
-                  <Call />
-                </ProtectedRoute>
-              } />
-              <Route path="/settings" element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              } />
-              <Route path="/brand-hub" element={
-                <ProtectedRoute requiredRole="brand">
-                  <BrandHub />
-                </ProtectedRoute>
-              } />
-              <Route path="/test-db" element={<TestDB />} />
-              <Route path="/payouts" element={<PayoutRequest />} />
-              <Route path="*" element={<NotFound />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute>
+                    <Routes>
+                      {/* Keep existing routes */}
+                      <Route path="" element={<Dashboard />} />
+                      <Route path="/messages" element={<Messages />} />
+                      <Route path="/call" element={<Call />} />
+                      <Route path="/creator-hub" element={<CreatorHub />} />
+                      <Route path="/brand-hub" element={<BrandHub />} />
+                      <Route path="/social-room" element={<SocialRoom />} />
+                      <Route path="/discover" element={<Discover />} />
+
+                      {/* Replace MyTracks with Leaderboard */}
+                      <Route path="/leaderboard" element={<LeaderboardPage />} />
+                      
+                      {/* Update LiveStream page */}
+                      <Route path="/live-stream" element={<LiveStreaming />} />
+
+                      {/* Other existing routes */}
+                      <Route path="/payout-request" element={<PayoutRequest />} />
+                      <Route path="/profile/:username" element={<ViewProfile />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/all-users" element={<AllUsers />} />
+                    </Routes>
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
           </BrowserRouter>
+          <Toaster />
         </AuthProvider>
-      </TooltipProvider>
+      </ThemeProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }

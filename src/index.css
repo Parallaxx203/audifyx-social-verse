@@ -148,3 +148,83 @@
     opacity: 0.8;
   }
 }
+
+/* Leaderboard */
+.leaderboard-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 15px;
+  background-color: #1e1e1e;
+  border-bottom: 1px solid #333;
+  color: white;
+  font-family: 'Arial', sans-serif;
+}
+.leaderboard-item span {
+  flex: 1;
+  text-align: center;
+}
+
+/* Post Upload Form */
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #222;
+  padding: 20px;
+  border-radius: 10px;
+}
+.upload-form input,
+.upload-form textarea,
+.upload-form select {
+  background: #111;
+  color: white;
+  border: 1px solid #444;
+  padding: 10px;
+  border-radius: 5px;
+}
+.upload-form button {
+  background-color: #5e35b1;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.upload-form button:hover {
+  background-color: #7e57c2;
+}
+
+/* Stream UI */
+.mac-frame {
+  background: url('/mac_screen_frame.png') no-repeat center center;
+  background-size: contain;
+  width: 800px;
+  height: 500px;
+  position: relative;
+  margin: auto;
+}
+.mac-frame video {
+  width: 90%;
+  height: 90%;
+  position: absolute;
+  top: 5%;
+  left: 5%;
+  border-radius: 12px;
+}
+.stream-tab-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 20px;
+}
+.stream-tab-list button {
+  margin: 5px;
+  padding: 10px 15px;
+  border-radius: 6px;
+  background: #333;
+  color: white;
+  border: none;
+}
+.stream-tab-list button:hover {
+  background: #555;
+}

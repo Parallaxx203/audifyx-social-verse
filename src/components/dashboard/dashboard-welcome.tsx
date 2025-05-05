@@ -2,8 +2,9 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Music } from "lucide-react";
+import { Music, Upload } from "lucide-react";
 import { UploadTrackModal } from "@/components/creator/UploadTrackModal";
+import { UploadPostModal } from "@/components/creator/UploadPostModal";
 import { StoryComponent } from "@/components/story/StoryComponent";
 
 export function DashboardWelcome() {
@@ -24,6 +25,11 @@ export function DashboardWelcome() {
       {/* Stories section */}
       <div className="mb-6">
         <StoryComponent />
+      </div>
+
+      {/* Upload post button for all users */}
+      <div className="flex flex-wrap gap-4 justify-center">
+        <UploadPostModal />
       </div>
 
       {/* Conditional buttons based on account type */}
@@ -51,7 +57,7 @@ export function DashboardWelcome() {
         </div>
       )}
 
-      <style jsx>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .welcome-banner-container {
           overflow: hidden;
           white-space: nowrap;
@@ -72,7 +78,7 @@ export function DashboardWelcome() {
             transform: translate(-100%, 0);
           }
         }
-      `}</style>
+      `}} />
     </div>
   );
 }
