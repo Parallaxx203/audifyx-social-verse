@@ -1,180 +1,151 @@
 
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatDistanceToNow } from "date-fns";
-import { Send, Users, MessageSquare, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Send, UserCheck } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { useOnlineUsers } from "@/hooks/useOnlineUsers";
 
+// Define the Message type
 interface Message {
   id: string;
   content: string;
-  user_id: string;
   created_at: string;
-  profiles?: {
+  user_id: string;
+  profile?: {
     username: string;
     avatar_url: string | null;
   };
 }
 
-interface OnlineUser {
-  id: string;
-  username: string;
-  avatar_url: string | null;
-  last_seen: string;
-}
-
 export default function SocialRoom() {
-  const isMobile = useIsMobile();
   const { user } = useAuth();
-  const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  // Fetch messages and set up real-time subscription
+  const { toast } = useToast();
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const { data: onlineUsers } = useOnlineUsers();
+
   useEffect(() => {
-    fetchMessages();
-    fetchOnlineUsers();
-    
-    // Mark user as online
     if (user) {
-      updateUserOnlineStatus(true);
+      fetchMessages();
+      setUserOnline(true);
       
-      // Set up presence tracking
-      const socialRoomChannel = supabase.channel('social-room');
-      
-      socialRoomChannel
-        .on('presence', { event: 'sync' }, () => {
-          fetchOnlineUsers();
-        })
-        .on('presence', { event: 'join' }, () => {
-          fetchOnlineUsers();
-        })
-        .on('presence', { event: 'leave' }, () => {
-          fetchOnlineUsers();
-        })
-        .subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-            await socialRoomChannel.track({
-              user_id: user.id,
-              online_at: new Date().toISOString(),
-            });
-          }
-        });
-      
-      // Listen for new messages
-      const messageChannel = supabase
+      // Subscribe to new messages
+      const channel = supabase
         .channel('public:social_room_messages')
-        .on('postgres_changes', 
-            { event: 'INSERT', schema: 'public', table: 'social_room_messages' },
-            (payload) => {
-              // Fetch the message with profile info
-              fetchMessageWithProfile(payload.new.id);
-            }
-        )
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'social_room_messages'
+        }, () => {
+          fetchMessages();
+        })
         .subscribe();
       
-      // Mark user as offline on unmount
       return () => {
-        updateUserOnlineStatus(false);
-        supabase.removeChannel(socialRoomChannel);
-        supabase.removeChannel(messageChannel);
+        setUserOnline(false);
+        supabase.removeChannel(channel);
       };
     }
   }, [user]);
-  
-  // Scroll to bottom when new messages arrive
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-  
-  const updateUserOnlineStatus = async (isOnline: boolean) => {
+
+  const setUserOnline = async (isOnline: boolean) => {
+    if (!user) return;
+    
     try {
-      await supabase.rpc('update_user_online_status', {
-        p_user_id: user?.id,
-        p_is_online: isOnline
-      });
-    } catch (error) {
-      console.error('Error updating online status:', error);
-    }
-  };
-  
-  const fetchOnlineUsers = async () => {
-    try {
-      const { data, error } = await supabase
+      await supabase
         .from('profiles')
-        .select('id, username, avatar_url, last_seen')
-        .eq('is_online', true)
-        .order('username');
-        
-      if (error) throw error;
-      setOnlineUsers(data || []);
-    } catch (error) {
-      console.error('Error fetching online users:', error);
-    }
-  };
-  
-  const fetchMessageWithProfile = async (messageId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('social_room_messages')
-        .select(`
-          id, content, user_id, created_at,
-          profiles:user_id (username, avatar_url)
-        `)
-        .eq('id', messageId)
-        .single();
-        
-      if (error) throw error;
+        .update({ 
+          is_online: isOnline,
+          last_seen: new Date().toISOString()
+        })
+        .eq('id', user.id);
       
-      setMessages(prev => [...prev, data]);
     } catch (error) {
-      console.error('Error fetching message:', error);
+      console.error("Error updating online status:", error);
     }
   };
-  
+
   const fetchMessages = async () => {
     setIsLoading(true);
     try {
+      // Create the table if it doesn't exist yet
+      if (!(await checkIfSocialRoomMessagesTableExists())) {
+        await createSocialRoomMessagesTable();
+      }
+      
       const { data, error } = await supabase
         .from('social_room_messages')
         .select(`
-          id, content, user_id, created_at,
+          id, 
+          content, 
+          created_at,
+          user_id,
           profiles:user_id (username, avatar_url)
         `)
         .order('created_at', { ascending: true })
         .limit(100);
-        
+      
       if (error) throw error;
-      setMessages(data || []);
+      
+      if (data) {
+        setMessages(data as Message[]);
+      }
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      console.error("Error fetching messages:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to load chat messages',
-        variant: 'destructive'
+        title: "Error",
+        description: "Failed to load messages. The social room may not be set up yet.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
-  
+
+  // Check if the table exists
+  const checkIfSocialRoomMessagesTableExists = async (): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('social_room_messages')
+        .select('id')
+        .limit(1);
+      
+      return !error;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  // Create the table if it doesn't exist
+  const createSocialRoomMessagesTable = async () => {
+    try {
+      await supabase.rpc('create_social_room_messages_table');
+      toast({
+        title: "Social Room Created",
+        description: "The social room has been set up successfully!",
+      });
+    } catch (error) {
+      console.error("Error creating social room messages table:", error);
+    }
+  };
+
   const sendMessage = async () => {
-    if (!message.trim() || !user) return;
+    if (!user || !message.trim()) return;
     
-    setIsSending(true);
     try {
       const { error } = await supabase
         .from('social_room_messages')
@@ -182,170 +153,152 @@ export default function SocialRoom() {
           content: message.trim(),
           user_id: user.id
         });
-        
+      
       if (error) throw error;
       
-      setMessage('');
+      setMessage("");
+      await fetchMessages();
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to send message',
-        variant: 'destructive'
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive",
       });
-    } finally {
-      setIsSending(false);
     }
   };
-  
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   };
-  
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-audifyx text-white">
       <div className="flex">
         <Sidebar />
-        <main className={`flex-1 ${isMobile ? 'ml-0' : 'ml-64'} p-4 flex flex-col h-screen`}>
-          <h1 className="text-3xl font-bold mb-2">Social Room</h1>
-          <p className="text-gray-300 mb-6">Chat with the community in real-time.</p>
-          
-          <Tabs defaultValue="chat" className="flex-1 flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <TabsList className="grid grid-cols-2 w-64">
-                <TabsTrigger value="chat">
-                  <MessageSquare className="h-4 w-4 mr-2" /> Chat
-                </TabsTrigger>
-                <TabsTrigger value="online">
-                  <Users className="h-4 w-4 mr-2" /> Online Users
-                </TabsTrigger>
-              </TabsList>
-              <Badge variant="outline" className="bg-green-500/20 border-green-500/30 text-green-400">
-                <span className="h-2 w-2 rounded-full bg-green-500 inline-block mr-2"></span>
-                {onlineUsers.length} Online
-              </Badge>
-            </div>
-            
-            <TabsContent value="chat" className="flex-1 flex flex-col space-y-4 mt-0">
-              <Card className="flex-1 bg-audifyx-purple-dark/30 border-audifyx-purple/20">
-                <CardContent className="p-4 h-[calc(100%-80px)] overflow-y-auto">
-                  {isLoading ? (
-                    <div className="flex items-center justify-center h-full">
-                      <Loader2 className="h-8 w-8 animate-spin text-audifyx-purple" />
-                    </div>
-                  ) : messages.length > 0 ? (
-                    <div className="space-y-4 pb-2">
-                      {messages.map((msg) => (
-                        <div 
-                          key={msg.id} 
-                          className={`flex gap-3 ${msg.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
-                        >
-                          {msg.user_id !== user?.id && (
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={msg.profiles?.avatar_url || undefined} />
-                              <AvatarFallback>
-                                {msg.profiles?.username?.[0].toUpperCase() || "?"}
-                              </AvatarFallback>
-                            </Avatar>
-                          )}
-                          <div className={`flex flex-col ${msg.user_id === user?.id ? 'items-end' : 'items-start'}`}>
-                            <div 
-                              className={`rounded-lg px-3 py-2 max-w-xs md:max-w-md lg:max-w-lg break-words ${
-                                msg.user_id === user?.id 
-                                ? 'bg-audifyx-purple text-white' 
-                                : 'bg-audifyx-purple-dark/80'
-                              }`}
-                            >
-                              {msg.user_id !== user?.id && (
-                                <div className="font-medium text-xs mb-1">
-                                  {msg.profiles?.username || "Unknown User"}
+        <main className={`flex-1 ${isMobile ? 'ml-0' : 'ml-64'} p-4 md:p-6`}>
+          <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Chat Area */}
+              <div className="flex-1">
+                <Card className="bg-audifyx-purple-dark/30 border-audifyx-purple/30">
+                  <CardHeader className="border-b border-audifyx-purple/20">
+                    <CardTitle className="flex items-center justify-between">
+                      <span>Social Room</span>
+                      <span className="text-sm font-normal text-gray-400">
+                        {onlineUsers?.length || 0} online
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="h-[60vh] flex flex-col">
+                      <div className="flex-1 overflow-y-auto p-4">
+                        {isLoading ? (
+                          <div className="flex justify-center items-center h-full">
+                            <p>Loading messages...</p>
+                          </div>
+                        ) : messages.length > 0 ? (
+                          <div className="space-y-4">
+                            {messages.map((msg) => (
+                              <div key={msg.id} className="flex items-start gap-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={msg.profile?.avatar_url || ""} />
+                                  <AvatarFallback>
+                                    {msg.profile?.username?.[0]?.toUpperCase() || "?"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-sm">
+                                      {msg.profile?.username || "Unknown User"}
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                      {formatTimestamp(msg.created_at)}
+                                    </span>
+                                  </div>
+                                  <p className="text-gray-300 mt-1">{msg.content}</p>
                                 </div>
-                              )}
-                              <p className="text-sm">{msg.content}</p>
-                            </div>
-                            <span className="text-xs text-gray-400 mt-1">
-                              {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
-                            </span>
+                              </div>
+                            ))}
+                            <div ref={messagesEndRef} />
                           </div>
-                          {msg.user_id === user?.id && (
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={user?.user_metadata?.avatar_url} />
-                              <AvatarFallback>
-                                {user?.user_metadata?.username?.[0].toUpperCase() || "U"}
-                              </AvatarFallback>
-                            </Avatar>
-                          )}
-                        </div>
-                      ))}
-                      <div ref={messagesEndRef} />
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400">
-                      <p>No messages yet. Be the first to say hello!</p>
-                    </div>
-                  )}
-                </CardContent>
-                <div className="p-4 border-t border-audifyx-purple/20">
-                  <form 
-                    className="flex items-center gap-2" 
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      sendMessage();
-                    }}
-                  >
-                    <Input 
-                      placeholder="Type a message..." 
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      className="bg-background/10 border-audifyx-purple/30"
-                      disabled={isSending || !user}
-                    />
-                    <Button 
-                      type="submit" 
-                      size="icon"
-                      disabled={!message.trim() || isSending || !user}
-                      className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
-                    >
-                      {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    </Button>
-                  </form>
-                </div>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="online" className="mt-0 flex-1">
-              <Card className="bg-audifyx-purple-dark/30 border-audifyx-purple/20 h-full">
-                <CardHeader>
-                  <CardTitle>Online Users</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {onlineUsers.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {onlineUsers.map(user => (
-                        <div key={user.id} className="flex items-center gap-3 bg-audifyx-purple/10 p-3 rounded-lg">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={user.avatar_url || undefined} />
-                            <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{user.username}</p>
-                            <div className="flex items-center gap-1 text-xs text-green-400">
-                              <span className="h-2 w-2 rounded-full bg-green-500"></span>
-                              <span>Online now</span>
-                            </div>
+                        ) : (
+                          <div className="flex justify-center items-center h-full">
+                            <p className="text-center text-gray-400">
+                              No messages yet. Be the first to say something!
+                            </p>
                           </div>
+                        )}
+                      </div>
+                      <div className="p-4 border-t border-audifyx-purple/20">
+                        <div className="flex gap-2">
+                          <Textarea
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="Type your message..."
+                            className="resize-none bg-audifyx-purple-dark/30"
+                            rows={1}
+                          />
+                          <Button 
+                            onClick={sendMessage} 
+                            className="bg-audifyx-purple hover:bg-audifyx-purple-vivid"
+                          >
+                            <Send className="h-4 w-4" />
+                          </Button>
                         </div>
-                      ))}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="text-center text-gray-400 py-12">
-                      <p>No users currently online</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              {/* Online Users */}
+              <div className="w-full md:w-64">
+                <Card className="bg-audifyx-purple-dark/30 border-audifyx-purple/30">
+                  <CardHeader className="border-b border-audifyx-purple/20">
+                    <CardTitle className="text-base">Online Users</CardTitle>
+                  </CardHeader>
+                  <CardContent className="h-[calc(60vh-64px)] overflow-y-auto">
+                    {onlineUsers && onlineUsers.length > 0 ? (
+                      <div className="space-y-3 py-2">
+                        {onlineUsers.map((user) => (
+                          <div key={user.id} className="flex items-center gap-3">
+                            <div className="relative">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={user.avatar_url || ""} />
+                                <AvatarFallback>
+                                  {user.username[0]?.toUpperCase() || "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-green-500 ring-1 ring-white" />
+                            </div>
+                            <span className="text-sm font-medium">{user.username}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center text-gray-400 py-4 text-sm">
+                        No users online
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
         </main>
       </div>
     </div>

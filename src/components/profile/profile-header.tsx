@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 import { useFollowUser } from '@/hooks/useFollowUser';
+import { useProfile, Profile } from '@/hooks/useProfile';
 
 interface ProfileHeaderProps {
   userId: string;
@@ -41,17 +42,21 @@ export function ProfileHeader({
   const [mostPlayedTrack, setMostPlayedTrack] = useState<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const { data: profileData } = useProfile(userId);
   
   const { 
-    isFollowing, 
     followUser, 
     unfollowUser, 
-    isLoading: followLoading 
-  } = useFollowUser(userId);
+    isFollowing, 
+    loading: followLoading 
+  } = useFollowUser();
+  
+  const [isFollowingState, setIsFollowingState] = useState(false);
 
   useEffect(() => {
-    if (userId) {
+    if (userId && user?.id) {
       fetchMostPlayedTrack();
+      checkFollowStatus();
     }
     
     return () => {
@@ -60,7 +65,13 @@ export function ProfileHeader({
         audio.currentTime = 0;
       }
     };
-  }, [userId]);
+  }, [userId, user?.id]);
+
+  const checkFollowStatus = async () => {
+    if (!user?.id || !userId) return;
+    const status = await isFollowing(userId);
+    setIsFollowingState(status);
+  };
 
   const fetchMostPlayedTrack = async () => {
     try {
@@ -125,13 +136,15 @@ export function ProfileHeader({
         return;
       }
       
-      if (isFollowing) {
-        await unfollowUser();
+      if (isFollowingState) {
+        await unfollowUser(userId);
+        setIsFollowingState(false);
         toast({
           description: `You unfollowed ${username}`,
         });
       } else {
-        await followUser();
+        await followUser(userId);
+        setIsFollowingState(true);
         toast({
           description: `You are now following ${username}`,
         });
@@ -223,12 +236,12 @@ export function ProfileHeader({
                 <>
                   <Button 
                     onClick={handleFollow}
-                    variant={isFollowing ? "outline" : "default"}
-                    className={!isFollowing ? "bg-audifyx-purple hover:bg-audifyx-purple-vivid" : ""}
+                    variant={isFollowingState ? "outline" : "default"}
+                    className={!isFollowingState ? "bg-audifyx-purple hover:bg-audifyx-purple-vivid" : ""}
                     disabled={followLoading}
                   >
                     <User className="h-4 w-4 mr-2" />
-                    {isFollowing ? "Following" : "Follow"}
+                    {isFollowingState ? "Following" : "Follow"}
                   </Button>
                   <Button onClick={handleMessage} variant="outline">
                     <MessageSquare className="h-4 w-4 mr-2" /> Message
@@ -265,10 +278,13 @@ export function ProfileHeader({
         )}
       </div>
       
-      <EditProfileModal 
-        open={showEditModal} 
-        onOpenChange={setShowEditModal} 
-      />
+      {profileData && (
+        <EditProfileModal 
+          open={showEditModal} 
+          onOpenChange={setShowEditModal} 
+          profile={profileData} 
+        />
+      )}
     </div>
   );
 }

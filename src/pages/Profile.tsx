@@ -26,10 +26,14 @@ export default function Profile() {
     setIsLoading(false);
   }, [navigate, user]);
 
-  const { data: profile } = useProfile(user?.id);
+  const { data: profile, isLoading: profileLoading } = useProfile(user?.id);
 
-  if (isLoading || !user) {
-    return null;
+  if (isLoading || profileLoading || !user) {
+    return (
+      <div className="min-h-screen bg-gradient-audifyx text-white flex items-center justify-center">
+        <div className="animate-spin">Loading...</div>
+      </div>
+    );
   }
 
   return (
@@ -46,17 +50,37 @@ export default function Profile() {
               Edit Profile
             </Button>
           </div>
-          <ProfileHeader isOwnProfile={true} />
-          <ProfileMetrics accountType={user?.user_metadata?.accountType || 'listener'} />
-          <div className="px-4">
-            <ProfileTabs 
-              isOwnProfile={true} 
-              accountType={user?.user_metadata?.accountType || 'listener'} 
-              userId={user.id} 
-            />
-          </div>
+          
           {profile && (
-            <EditProfileModal open={editOpen} onOpenChange={setEditOpen} profile={profile} />
+            <>
+              <ProfileHeader 
+                userId={profile.id}
+                username={profile.username}
+                avatarUrl={profile.avatar_url}
+                isOwnProfile={true}
+                followers={0} // We'll update these with real data later
+                following={0}
+                joinedDate={profile.created_at}
+                role={profile.account_type}
+                bio={profile.bio}
+              />
+              
+              <ProfileMetrics accountType={profile.account_type || 'listener'} />
+              
+              <div className="px-4">
+                <ProfileTabs 
+                  isOwnProfile={true} 
+                  accountType={profile.account_type || 'listener'} 
+                  userId={user.id} 
+                />
+              </div>
+              
+              <EditProfileModal 
+                open={editOpen} 
+                onOpenChange={setEditOpen} 
+                profile={profile} 
+              />
+            </>
           )}
         </main>
       </div>

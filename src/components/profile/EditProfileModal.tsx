@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,15 +7,26 @@ import { useUpdateProfile, uploadProfileFile, Profile } from "@/hooks/useProfile
 import { toast } from "@/components/ui/use-toast";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/contexts/AuthContext";
 
-export function EditProfileModal({ open, onOpenChange, profile }: { open: boolean, onOpenChange: (open: boolean) => void, profile: Profile }) {
-  const [displayName, setDisplayName] = useState(profile?.username ?? "");
-  const [bio, setBio] = useState(profile?.bio || "");
+export function EditProfileModal({ open, onOpenChange, profile }: { open: boolean, onOpenChange: (open: boolean) => void, profile: Profile | null }) {
+  const { user } = useAuth();
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const updateProfile = useUpdateProfile(profile?.id);
+  // Initialize updateProfile with a safe default
+  const updateProfile = useUpdateProfile(user?.id || "");
+
+  // Reset form when profile changes or modal opens
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.username || "");
+      setBio(profile.bio || "");
+    }
+  }, [profile, open]);
 
   const validateFileType = (file: File) => {
     const allowedTypes = ['image/jpeg', 'image/png'];
@@ -31,6 +42,15 @@ export function EditProfileModal({ open, onOpenChange, profile }: { open: boolea
   };
 
   async function handleSave() {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You need to be logged in to update your profile",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!displayName.trim()) {
       toast({
         title: "Username required",
@@ -52,7 +72,7 @@ export function EditProfileModal({ open, onOpenChange, profile }: { open: boolea
           setIsLoading(false);
           return;
         }
-        update.avatar_url = await uploadProfileFile("profile_images", avatarFile, profile.id);
+        update.avatar_url = await uploadProfileFile("profile_images", avatarFile, user.id);
       }
       
       if (bannerFile) {
@@ -60,7 +80,7 @@ export function EditProfileModal({ open, onOpenChange, profile }: { open: boolea
           setIsLoading(false);
           return;
         }
-        update.banner_url = await uploadProfileFile("profile_banners", bannerFile, profile.id);
+        update.banner_url = await uploadProfileFile("profile_banners", bannerFile, user.id);
       }
       
       update.updated_at = new Date().toISOString();
@@ -117,10 +137,10 @@ export function EditProfileModal({ open, onOpenChange, profile }: { open: boolea
               id="avatar"
               type="file" 
               accept="image/jpeg, image/png" 
-              onChange={e => setAvatarFile((e.target.files?.[0] || null))} 
+              onChange={e => setAvatarFile(e.target.files?.[0] || null)} 
               className="bg-audifyx-charcoal/50"
             />
-            {profile.avatar_url && (
+            {profile?.avatar_url && (
               <div className="mt-2 flex items-center gap-2">
                 <img src={profile.avatar_url} alt="Current avatar" className="w-10 h-10 rounded-full object-cover" />
                 <span className="text-sm text-gray-400">Current profile picture</span>
@@ -134,10 +154,10 @@ export function EditProfileModal({ open, onOpenChange, profile }: { open: boolea
               id="banner"
               type="file" 
               accept="image/jpeg, image/png" 
-              onChange={e => setBannerFile((e.target.files?.[0] || null))} 
+              onChange={e => setBannerFile(e.target.files?.[0] || null)} 
               className="bg-audifyx-charcoal/50"
             />
-            {profile.banner_url && (
+            {profile?.banner_url && (
               <div className="mt-2">
                 <img src={profile.banner_url} alt="Current banner" className="w-full h-20 object-cover rounded" />
                 <span className="text-sm text-gray-400">Current banner image</span>

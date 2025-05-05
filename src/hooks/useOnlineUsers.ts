@@ -39,16 +39,15 @@ export function useOnlineUsers(searchQuery: string = '') {
   });
 
   useEffect(() => {
-    // Subscribe to presence changes
+    // Subscribe to presence changes in the profiles table
     const channel = supabase
-      .channel('online-users')
-      .on('presence', { event: 'sync' }, () => {
-        refetch();
-      })
-      .on('presence', { event: 'join' }, () => {
-        refetch();
-      })
-      .on('presence', { event: 'leave' }, () => {
+      .channel('profiles-presence')
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'profiles',
+        filter: 'is_online=true'
+      }, () => {
         refetch();
       })
       .subscribe();
